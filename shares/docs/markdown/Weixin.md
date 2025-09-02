@@ -8,6 +8,78 @@
 
 --------------------
 
+### GetUserInfo
+
+#### 简要描述：
+
+- []
+
+#### 请求URL:
+
+- http://localhost:8082/shares/api/v1/weixin.get_user_info
+
+#### 请求方式：
+
+- post
+
+#### 请求参数:
+
+- ` Empty ` : 
+
+|参数名|是否必须|类型|说明|
+|:----    |:---|:----- |-----   |
+
+
+#### 请求示例:
+```
+{}
+```
+
+#### 返回参数说明:
+
+- ` GetUserInfoResp ` : 用户信息
+
+|参数名|是否必须|类型|说明|
+|:----    |:---|:----- |-----   |
+|`openid` | 否|string|用户openid   |
+|`nickName` | 否|string|用户昵称   |
+|`avatarURL` | 否|string|用户头像地址   |
+|`gender` | 否|string|用户的性别   |
+|`city` | 否|string|用户所在城市   |
+|`province` | 否|string|用户所在省份   |
+|`country` | 否|string|用户所在国家   |
+|`phone` | 否|string|用户手机号   |
+|`group` | 否|string|用户所在分组列表   |
+|`rg` | 否|bool|是否涨绿跌红   |
+|`only20` | 否|bool|是否20日线   |
+|`capacity` | 否|int32|可用容量   |
+
+
+#### 返回示例:
+	
+```
+{
+     "avatarURL": "",
+     "capacity": 0,
+     "city": "",
+     "country": "",
+     "gender": "",
+     "group": "",
+     "nickName": "",
+     "only20": false,
+     "openid": "",
+     "phone": "",
+     "province": "",
+     "rg": false
+}
+```
+
+#### 备注:
+
+- 
+
+--------------------
+
 ### Oauth
 
 #### 简要描述：
@@ -16,7 +88,7 @@
 
 #### 请求URL:
 
-- http://localhost:82/shares/api/v1/weixin.oauth
+- http://localhost:8082/shares/api/v1/weixin.oauth
 
 #### 请求方式：
 
@@ -75,7 +147,7 @@
 
 #### 请求URL:
 
-- http://localhost:82/shares/api/v1/weixin.re_login
+- http://localhost:8082/shares/api/v1/weixin.re_login
 
 #### 请求方式：
 
@@ -131,7 +203,7 @@
 
 #### 请求URL:
 
-- http://localhost:82/shares/api/v1/weixin.update_user_info
+- http://localhost:8082/shares/api/v1/weixin.update_user_info
 
 #### 请求方式：
 
@@ -195,7 +267,7 @@
 
 #### 请求URL:
 
-- http://localhost:82/shares/api/v1/weixin.upset_user_info
+- http://localhost:8082/shares/api/v1/weixin.upset_user_info
 
 #### 请求方式：
 
@@ -247,7 +319,7 @@
 
 #### 请求URL:
 
-- http://localhost:82/shares/api/v1/weixin.get_qrcode
+- http://localhost:8082/shares/api/v1/weixin.get_qrcode
 
 #### 请求方式：
 
@@ -291,78 +363,6 @@
 #### 备注:
 
 - 获取微信二维码
-
---------------------
-
-### GetUserInfo
-
-#### 简要描述：
-
-- []
-
-#### 请求URL:
-
-- http://localhost:82/shares/api/v1/weixin.get_user_info
-
-#### 请求方式：
-
-- post
-
-#### 请求参数:
-
-- ` Empty ` : 
-
-|参数名|是否必须|类型|说明|
-|:----    |:---|:----- |-----   |
-
-
-#### 请求示例:
-```
-{}
-```
-
-#### 返回参数说明:
-
-- ` GetUserInfoResp ` : 用户信息
-
-|参数名|是否必须|类型|说明|
-|:----    |:---|:----- |-----   |
-|`openid` | 否|string|用户openid   |
-|`nickName` | 否|string|用户昵称   |
-|`avatarURL` | 否|string|用户头像地址   |
-|`gender` | 否|string|用户的性别   |
-|`city` | 否|string|用户所在城市   |
-|`province` | 否|string|用户所在省份   |
-|`country` | 否|string|用户所在国家   |
-|`phone` | 否|string|用户手机号   |
-|`group` | 否|string|用户所在分组列表   |
-|`rg` | 否|bool|是否涨绿跌红   |
-|`only20` | 否|bool|是否20日线   |
-|`capacity` | 否|int32|可用容量   |
-
-
-#### 返回示例:
-	
-```
-{
-     "avatarURL": "",
-     "capacity": 0,
-     "city": "",
-     "country": "",
-     "gender": "",
-     "group": "",
-     "nickName": "",
-     "only20": false,
-     "openid": "",
-     "phone": "",
-     "province": "",
-     "rg": false
-}
-```
-
-#### 备注:
-
-- 
 	
 
 --------------------

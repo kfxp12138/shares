@@ -1,17 +1,19 @@
 package main
 
 import (
-	"fmt"
-	"os"
+    "fmt"
+    "net/http"
+    "os"
 
-	"shares/internal/config"
-	"shares/internal/routers"
+    "shares/internal/config"
+    "shares/internal/routers"
 
-	"github.com/gin-gonic/gin"
-	"github.com/gmsec/goplugins/plugin"
-	"github.com/xxjwxc/public/mydoc/myswagger"
-	"github.com/xxjwxc/public/mylog"
-	"github.com/xxjwxc/public/server"
+    "github.com/gin-gonic/gin"
+    "github.com/gmsec/goplugins/plugin"
+    "github.com/xxjwxc/public/mydoc/myswagger"
+    "github.com/xxjwxc/public/mylog"
+    "github.com/xxjwxc/public/server"
+    "github.com/xxjwxc/public/tools"
 )
 
 // CallBack service call backe
@@ -19,7 +21,7 @@ func CallBack() {
 	mylog.SetLog(mylog.GetDefaultZap())
 
 	// swagger
-	myswagger.SetHost("https://localhost:" + config.GetPort())
+    myswagger.SetHost("http://localhost:" + config.GetPort())
 	myswagger.SetBasePath("shares")
 	myswagger.SetSchemes(true, false)
 	// -----end --
@@ -40,21 +42,27 @@ func CallBack() {
 	// )
 	// ----------- end
 
-	// gin restful 相关
-	router := gin.Default()
-	router.Use(routers.Cors())
-	v1 := router.Group("/shares/api/v1")
-	routers.OnInitRoot(nil, v1) // 自定义初始化
+    // gin restful 相关
+    router := gin.Default()
+    router.Use(routers.Cors())
+    // Serve static visualization and docs outside API group
+    router.StaticFS("/shares/echarts", http.Dir(tools.GetCurrentDirectory()+"/echarts"))
+    router.StaticFS("/shares/docs", http.Dir(tools.GetCurrentDirectory()+"/docs"))
+    v1 := router.Group("/shares/api/v1")
+    routers.OnInitRoot(nil, v1) // 自定义初始化
 	// ------ end
 
-	plg, b := plugin.RunHTTP(plugin.WithGin(router),
-		// plugin.WithMicro(service),
-		plugin.WithAddr(":"+config.GetPort()))
+    plg, err := plugin.RunHTTP(plugin.WithGin(router),
+        // plugin.WithMicro(service),
+        plugin.WithAddr(":"+config.GetPort()))
 
-	if b == nil {
-		plg.Wait()
-	}
-	fmt.Println("done")
+    if err != nil {
+        mylog.Error("HTTP start failed", err)
+        return
+    }
+    mylog.Infof("HTTP listening on :%s", config.GetPort())
+    plg.Wait()
+    fmt.Println("done")
 }
 
 func main() {

@@ -189,16 +189,26 @@ func countHYZLJLR() {
 			if len(v.F12) == 0 {
 				continue
 			}
-			out, _ := mgrhy.Reset().FetchUniqueIndexByHyCode(v.F12, day0)
-			if out.ID == 0 {
-				out.HyCode = v.F12
-				out.HyName = v.F14
-				out.Day0 = day0
-				out.Day0Str = tools.GetDayStr(tools.UnixToTime(day0))
-				out.CreatedAt = time.Now()
-			}
-			out.Price = v.F62 * 0.0001
-			mgrhy.Save(&out)
+            out, _ := mgrhy.Reset().FetchUniqueIndexByHyCode(v.F12, day0)
+            if out.ID == 0 {
+                out.HyCode = v.F12
+                out.HyName = v.F14
+                out.Day0 = day0
+                out.Day0Str = tools.GetDayStr(tools.UnixToTime(day0))
+                out.CreatedAt = time.Now()
+                // 主力净流入存入 zljlr 字段（单位换算为万元）
+                out.Zljlr = v.F62 * 0.0001
+                // 新记录显式使用 Create 以避免携带 id 造成主键冲突
+                _ = mgrhy.Create(&out).Error
+                continue
+            }
+            // 已存在记录，仅更新 zljlr，避免 Save 触发携带 id 的插入
+            _ = mgrhy.Model(&model.HyDailyTbl{}).
+                Where("id = ?", out.ID).
+                Updates(map[string]interface{}{
+                    "zljlr":  v.F62 * 0.0001,
+                    "hy_name": out.HyName,
+                }).Error
 		}
 	}
 

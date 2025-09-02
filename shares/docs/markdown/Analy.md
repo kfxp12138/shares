@@ -16,7 +16,7 @@
 
 #### 请求URL:
 
-- http://localhost:82/shares/api/v1/analy.analy_code
+- http://localhost:8082/shares/api/v1/analy.analy_code
 
 #### 请求方式：
 

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>选股板块</title>
+  <style>
+    body { margin:0; font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+    .wrap { padding: 10px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 6px 8px; border-bottom: 1px solid #eee; text-align: left; }
+    th { position: sticky; top: 0; background: #fafafa; z-index: 1; }
+    .pos { color: #e54d42; }
+    .neg { color: #39b54a; }
+    .muted { color: #888; font-size: 12px; }
+    .leaders a { margin-right: 6px; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h3>选股板块（实时热度）</h3>
+    <div class="muted">数据源：HyUpTbl（当日），行业净流入：HyDailyTbl.zljlr（万元）</div>
+    <table id="tbl">
+      <thead>
+        <tr>
+          <th style="width:22%">板块</th>
+          <th style="width:10%">涨幅</th>
+          <th style="width:10%">换手</th>
+          <th style="width:12%">净流入(万)</th>
+          <th style="width:12%">上涨/家数</th>
+          <th>领涨股</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    async function load(limit=30, leaders=1) {
+      const resp = await fetch('/shares/api/v1/analy.pick_board?limit='+limit+'&leaders='+leaders);
+      const data = await resp.json();
+      const tb = document.querySelector('#tbl tbody');
+      tb.innerHTML = '';
+      for (const row of (data.list || [])) {
+        const tr = document.createElement('tr');
+        const pf = row.percent || 0;
+        const cls = pf >= 0 ? 'pos' : 'neg';
+        const leadersHtml = (row.leaders||[]).map(x => {
+          const color = (x.percent||0) >= 0 ? 'pos' : 'neg';
+          const url = '/shares/echarts/echarts.html?tag=daily&code='+encodeURIComponent(x.code);
+          return '<a href="'+url+'" target="_blank">'+x.name+' <span class="'+color+'">'+x.percent.toFixed(2)+'%</span></a>'
+        }).join('');
+        tr.innerHTML = `
+          <td>${row.hyName}</td>
+          <td class="${cls}">${pf.toFixed(2)}%</td>
+          <td>${(row.turnoverRate||0).toFixed(2)}%</td>
+          <td>${(row.zljlr||0).toFixed(2)}</td>
+          <td>${row.up||0}/${row.num||0}</td>
+          <td class="leaders">${leadersHtml}</td>
+        `;
+        tb.appendChild(tr);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => load());
+  </script>
+</body>
+</html>
+

@@ -62,6 +62,8 @@ func InitObj(router gin.IRoutes, objs ...interface{}) {
 		ginrpc.WithBeforeAfter(&ginrpc.DefaultGinBeforeAfter{}))
 	router.POST("/analy.deal_msg", base.HandlerFunc(analy.DealMsg))
 	base.RegisterHandlerFunc(router, []string{"post", "get"}, "/analy.wx_token", analy.WxTokenSignature)
+	// 选股板块（热板）
+	base.RegisterHandlerFunc(router, []string{"post", "get"}, "/analy.pick_board", analy.PickBoard)
 
 	base.OutDoc(true)
 	base.Register(router, objs...) // 对象注册
