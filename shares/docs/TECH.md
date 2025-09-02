@@ -136,6 +136,10 @@ sudo ./shares run
   - 示例：`http://localhost:8082/shares/echarts/echarts.html?rg=true&only20=false&tag=daily&code=sh600000`
 - 选股板块榜单：`shares/shares/echarts/board.html`（依赖接口 `/shares/api/v1/analy.pick_board`）
   - 示例：`http://localhost:8082/shares/echarts/board.html`
+ - 自选股榜单：`shares/shares/echarts/myboard.html`（依赖接口 `/shares/api/v1/analy.my_board`，需登录）
+ - 示例：`http://localhost:8082/shares/echarts/myboard.html`
+ - 本地自选分组（无需登录）：`shares/shares/echarts/watchlist.html`（依赖 `/shares/api/v1/analy.pick_codes`）
+  - 示例：`http://localhost:8082/shares/echarts/watchlist.html`
 - 小程序：`shares/shares/uniapp/*`（在 `utils/server/*.js` 中配置服务地址）
 - Web Demo：`shares/element/webpack/*`
 
@@ -200,3 +204,4 @@ make run           # 本地构建并运行
 ## 十七、可视化 API 清单
 
 - 可视化页面与数据 API、返回 `img` 链接的业务接口见：`shares/shares/docs/VISUAL_API.md`
+  - 开发一键登录：`/shares/api/v1/analy.dev_login`（供本地快速获取登录态）

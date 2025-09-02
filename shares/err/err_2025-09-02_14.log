@@ -1,0 +1,68 @@
+=========================2025-09-02 14:25:22 ========================= 
+json: cannot unmarshal array into Go struct field DailyWWW.data of type event.DailyData
+goroutine 59 [running]:
+runtime/debug.Stack()
+	/usr/local/go/src/runtime/debug/stack.go:26 +0x64
+github.com/xxjwxc/public/mylog.(*errDeal).SaveError(0x140006d1898, {0x14000c025a0, 0x57}, {0x10359d680, 0x3})
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mylog/common.go:38 +0x200
+github.com/xxjwxc/public/mylog.(*zapLog).Error(0x140006d1890, {0x14000a626a0, 0x1, 0x1})
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mylog/zap.go:90 +0x90
+github.com/xxjwxc/public/mylog.Error(...)
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mylog/mylog.go:50
+shares/internal/service/event.GetDayliy({0x14000842304, 0x9})
+	/Users/triplewings/gupiao/gupiao_all_in_one/shares/shares/internal/service/event/event.go:460 +0x1c0
+shares/internal/service/shares.(*Shares).Dayliy(0x2?, 0x2?, 0x0?)
+	/Users/triplewings/gupiao/gupiao_all_in_one/shares/shares/internal/service/shares/shares.go:683 +0x24
+reflect.Value.call({0x14000995260?, 0x14000f8e1d8?, 0x14000ed35a8?}, {0x10359e6b2, 0x4}, {0x14000ed36f8, 0x3, 0x14000a62610?})
+	/usr/local/go/src/reflect/value.go:581 +0x97c
+reflect.Value.Call({0x14000995260?, 0x14000f8e1d8?, 0x1039987e0?}, {0x14000ed36f8?, 0x10?, 0x103a1f560?})
+	/usr/local/go/src/reflect/value.go:365 +0x94
+github.com/xxjwxc/ginrpc.(*_Base).getCallObj3.func2(0x14000faa700)
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/ginrpc@v0.0.0-20230310093254-f637665659ca/common.go:277 +0x248
+github.com/gin-gonic/gin.(*Context).Next(0x14000faa700)
+	/Users/triplewings/go/pkg/mod/github.com/gin-gonic/gin@v1.9.1/context.go:174 +0x40
+main.CallBack.Cors.func1(0x14000faa700)
+	/Users/triplewings/gupiao/gupiao_all_in_one/shares/shares/internal/routers/api_root.go:111 +0x120
+github.com/gin-gonic/gin.(*Context).Next(...)
+	/Users/triplewings/go/pkg/mod/github.com/gin-gonic/gin@v1.9.1/context.go:174
+github.com/gin-gonic/gin.CustomRecoveryWithWriter.func1(0x14000faa700)
+	/Users/triplewings/go/pkg/mod/github.com/gin-gonic/gin@v1.9.1/recovery.go:102 +0x7c
+github.com/gin-gonic/gin.(*Context).Next(...)
+	/Users/triplewings/go/pkg/mod/github.com/gin-gonic/gin@v1.9.1/context.go:174
+github.com/gin-gonic/gin.LoggerWithConfig.func1(0x14000faa700)
+	/Users/triplewings/go/pkg/mod/github.com/gin-gonic/gin@v1.9.1/logger.go:240 +0xb4
+github.com/gin-gonic/gin.(*Context).Next(...)
+	/Users/triplewings/go/pkg/mod/github.com/gin-gonic/gin@v1.9.1/context.go:174
+github.com/gin-gonic/gin.(*Engine).handleHTTPRequest(0x1400012a340, 0x14000faa700)
+	/Users/triplewings/go/pkg/mod/github.com/gin-gonic/gin@v1.9.1/gin.go:620 +0x518
+github.com/gin-gonic/gin.(*Engine).ServeHTTP(0x1400012a340, {0x103aaba20, 0x1400024e7e0}, 0x140002e1180)
+	/Users/triplewings/go/pkg/mod/github.com/gin-gonic/gin@v1.9.1/gin.go:576 +0x174
+net/http.serverHandler.ServeHTTP({0x103aa7778?}, {0x103aaba20?, 0x1400024e7e0?}, 0x6?)
+	/usr/local/go/src/net/http/server.go:3210 +0xbc
+net/http.(*conn).serve(0x140005fe000, {0x103aadd30, 0x14000f18150})
+	/usr/local/go/src/net/http/server.go:2092 +0x4fc
+created by net/http.(*Server).Serve in goroutine 58
+	/usr/local/go/src/net/http/server.go:3360 +0x3dc
+
+=========================end=========================
+=========================2025-09-02 14:30:02 ========================= 
+股票代码不合法
+goroutine 71 [running]:
+runtime/debug.Stack()
+	/usr/local/go/src/runtime/debug/stack.go:26 +0x64
+github.com/xxjwxc/public/mylog.(*errDeal).SaveError(0x140006d1898, {0x14000048168, 0x15}, {0x10359d680, 0x3})
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mylog/common.go:38 +0x200
+github.com/xxjwxc/public/mylog.(*zapLog).Error(0x140006d1890, {0x140012aecc0, 0x1, 0x1})
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mylog/zap.go:90 +0x90
+github.com/xxjwxc/public/mylog.Error(...)
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mylog/mylog.go:50
+shares/internal/service/analy.updatePeg()
+	/Users/triplewings/gupiao/gupiao_all_in_one/shares/shares/internal/service/analy/peg.go:55 +0x19c
+shares/internal/service/analy.ticket14()
+	/Users/triplewings/gupiao/gupiao_all_in_one/shares/shares/internal/service/analy/watch.go:49 +0x30
+github.com/xxjwxc/public/timerDeal.OnPeDay.func1()
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/timerDeal/timetask.go:68 +0x28c
+created by github.com/xxjwxc/public/timerDeal.OnPeDay in goroutine 1
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/timerDeal/timetask.go:59 +0x80
+
+=========================end=========================

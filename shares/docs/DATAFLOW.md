@@ -144,3 +144,20 @@
 - 404 可视化：确认 `main.go` 已挂载静态目录 `/shares/echarts`、`/shares/docs`
 - 端口占用/权限：开发建议使用 `8082`；生产使用 `82` 需 root 权限或以服务方式运行
 
+## 9. 概念映射（代码 ↔ 概念/板块）
+
+- 刷新入口：`POST /shares/api/v1/analy.refresh_concepts`
+  - 支持两种来源：
+    - 东财：触发 `initHY()` + `initHYCode()`，重建板块列表并回填 `shares_info_tbl.hy_name` + `concept_map_tbl`
+    - adata：`POST /analy.refresh_concepts?source=adata`，Body 传入概念 JSON（详见 VISUAL_API），同样落表（概念归一化支持）
+- 查询接口：
+  - `GET/POST /shares/api/v1/analy.concepts_by_code?code=sh600000`
+  - `GET /shares/api/v1/analy.search_concepts?q=机器人`
+- 查询融合：
+  - `Shares.Search` 已在返回体中的 `info.hy` 携带概念字符串（来自 `shares_info_tbl.hy_name`）
+  - `shares.search_plus` 新增 `concepts: []string` 数组，便于联动
+  - `shares.search_plus_detail` 返回 `concepts: [{id,name,hyCode}]` 明细，方便做概念跳转/过滤
+  - 结构化表：
+    - `concept_master_tbl(id,hy_code,name,created_at)`
+    - `concept_alias_tbl(id,alias,name,created_at)`（用于 adata/东财 名称归一化）
+    - `concept_map_tbl(id,code,hy_code,concept_id,name,created_at)`（唯一键：code,name）

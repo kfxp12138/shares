@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>选股板块</title>
+  <title>涨幅榜</title>
   <style>
     body { margin:0; font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
     .wrap { padding: 10px; }
@@ -18,17 +18,29 @@
 </head>
 <body>
   <div class="wrap">
-    <h3>选股板块（实时热度）</h3>
-    <div class="muted">数据源：HyUpTbl（当日），行业净流入：HyDailyTbl.zljlr（万元）</div>
+    <h3>涨幅榜（快照）</h3>
+    <div class="muted">说明：按涨幅从高到低展示；支持概念过滤、排序与分页</div>
+    <div class="row" style="margin:8px 0; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <label>概念：</label>
+      <input id="conceptInput" placeholder="如 机器人" style="padding:6px 8px;"/>
+      <label>每页：</label>
+      <select id="limitSel"><option>50</option><option selected>200</option><option>500</option></select>
+      <button onclick="applyFilter()">应用</button>
+      <span id="pager" class="muted" style="margin-left:auto;"></span>
+      <button onclick="prevPage()">上一页</button>
+      <button onclick="nextPage()">下一页</button>
+    </div>
+    <div class="row" style="margin:8px 0;">
+      <label><input type="checkbox" id="rt"/> 实时排序</label>
+    </div>
     <table id="tbl">
       <thead>
         <tr>
-          <th style="width:22%">板块</th>
-          <th style="width:10%">涨幅</th>
-          <th style="width:10%">换手</th>
-          <th style="width:12%">净流入(万)</th>
-          <th style="width:12%">上涨/家数</th>
-          <th>领涨股</th>
+          <th style="width:14%">代码</th>
+          <th style="width:16%">名称</th>
+          <th style="width:10%"><a href="#" onclick="toggleSort('percent');return false;">涨幅</a></th>
+          <th style="width:10%"><a href="#" onclick="toggleSort('price');return false;">现价</a></th>
+          <th>概念</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -36,34 +48,72 @@
   </div>
 
   <script>
-    async function load(limit=30, leaders=1) {
-      const resp = await fetch('/shares/api/v1/analy.pick_board?limit='+limit+'&leaders='+leaders);
-      const data = await resp.json();
+    function getQueryVariable(variable){
+      const query = window.location.search.substring(1);
+      const vars = query.split('&');
+      for(let i=0;i<vars.length;i++){ const pair = vars[i].split('='); if(pair[0]==variable) return decodeURIComponent(pair[1]||''); }
+      return '';
+    }
+    function setParam(k,v){ const url = new URL(window.location.href); if(v===""||v===null){ url.searchParams.delete(k); } else { url.searchParams.set(k,v); } history.replaceState(null,'',url.toString()); }
+    function getIntParam(k, def){ const v = parseInt(getQueryVariable(k)||''); return isNaN(v)?def:v; }
+    async function load() {
+      const concept = getQueryVariable('concept');
+      const sort = getQueryVariable('sort') || 'percent';
+      const order = getQueryVariable('order') || 'desc';
+      const limit = getIntParam('limit', 200);
+      const offset = getIntParam('offset', 0);
+      document.getElementById('conceptInput').value = concept||'';
+      document.getElementById('limitSel').value = String(limit);
+      const url = '/shares/api/v1/analy.top_stocks?limit='+limit + '&offset='+offset + (concept? '&concept='+encodeURIComponent(concept):'') + '&sort='+sort+'&order='+order + '&realtime='+realtime;
+      let resp = await fetch(url);
+      let data = await resp.json();
+      if((!data.list || data.list.length===0) && (realtime==='0')){
+        const url2 = url.replace('realtime=0','realtime=1');
+        resp = await fetch(url2); data = await resp.json();
+      }
       const tb = document.querySelector('#tbl tbody');
       tb.innerHTML = '';
       for (const row of (data.list || [])) {
         const tr = document.createElement('tr');
         const pf = row.percent || 0;
         const cls = pf >= 0 ? 'pos' : 'neg';
-        const leadersHtml = (row.leaders||[]).map(x => {
-          const color = (x.percent||0) >= 0 ? 'pos' : 'neg';
-          const url = '/shares/echarts/echarts.html?tag=daily&code='+encodeURIComponent(x.code);
-          return '<a href="'+url+'" target="_blank">'+x.name+' <span class="'+color+'">'+x.percent.toFixed(2)+'%</span></a>'
-        }).join('');
+        const link = '/shares/echarts/echarts.html?tag=daily&code='+encodeURIComponent(row.code);
+        const chips = (row.concepts||'').split(',').filter(Boolean).map(x=>`<a href="/shares/echarts/concept.html?name=${encodeURIComponent(x)}" target="_blank">${x}</a>`).join(' ');
         tr.innerHTML = `
-          <td>${row.hyName}</td>
+          <td><a href="${link}" target="_blank">${row.code}</a></td>
+          <td>${row.name||''}</td>
           <td class="${cls}">${pf.toFixed(2)}%</td>
-          <td>${(row.turnoverRate||0).toFixed(2)}%</td>
-          <td>${(row.zljlr||0).toFixed(2)}</td>
-          <td>${row.up||0}/${row.num||0}</td>
-          <td class="leaders">${leadersHtml}</td>
+          <td>${(row.price||0).toFixed(2)}</td>
+          <td class="leaders">${chips}</td>
         `;
         tb.appendChild(tr);
       }
     }
 
     document.addEventListener('DOMContentLoaded', () => load());
+    function toggleSort(key){
+      const url = new URL(window.location.href);
+      const cur = url.searchParams.get('sort') || 'percent';
+      let order = url.searchParams.get('order') || 'desc';
+      if(cur===key){ order = (order==='desc')?'asc':'desc'; } else { order='desc'; }
+      url.searchParams.set('sort', key); url.searchParams.set('order', order);
+      window.location.href = url.toString();
+    }
+    function applyFilter(){
+      setParam('concept', document.getElementById('conceptInput').value.trim());
+      setParam('limit', document.getElementById('limitSel').value);
+      setParam('offset', 0);
+      setParam('realtime', document.getElementById('rt')?.checked ? '1':'0');
+      load();
+    }
+    function nextPage(){ const limit = getIntParam('limit',200); const offset = getIntParam('offset',0)+limit; setParam('offset', offset); load(); }
+    function prevPage(){ const limit = getIntParam('limit',200); const offset = Math.max(0, getIntParam('offset',0)-limit); setParam('offset', offset); load(); }
+    async function fillConceptList(){
+      if(document.getElementById('conceptsList')) return;
+      const datalist = document.createElement('datalist'); datalist.id='conceptsList'; document.body.appendChild(datalist);
+      document.getElementById('conceptInput').setAttribute('list','conceptsList');
+      try{ const r = await fetch('/shares/api/v1/analy.concepts_overview'); const d = await r.json(); datalist.innerHTML = (d.list||[]).map(x=>`<option value="${x.name}"></option>`).join(''); }catch(e){}
+    }
   </script>
 </body>
 </html>
-

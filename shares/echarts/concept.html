@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>概念成分股</title>
+  <style>
+    body { margin:0; font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+    .wrap { padding: 10px; }
+    .row { margin-bottom: 10px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 6px 8px; border-bottom: 1px solid #eee; text-align: left; }
+    th { position: sticky; top: 0; background: #fafafa; z-index: 1; }
+    .pos { color: #e54d42; }
+    .neg { color: #39b54a; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h3 id="title">概念成分股</h3>
+    <table id="tbl">
+      <thead>
+        <tr>
+          <th>代码</th>
+          <th>名称</th>
+          <th>涨幅</th>
+          <th>现价</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    function getQueryVariable(variable){
+      const query = window.location.search.substring(1);
+      const vars = query.split('&');
+      for(let i=0;i<vars.length;i++){ const pair = vars[i].split('='); if(pair[0]==variable) return decodeURIComponent(pair[1]||''); }
+      return '';
+    }
+    function fmt2(n){ return (n||0).toFixed(2); }
+    async function load(){
+      const name = getQueryVariable('name');
+      document.getElementById('title').innerText = '概念：'+name;
+      const r = await fetch('/shares/api/v1/analy.concept_stocks?name='+encodeURIComponent(name));
+      const d = await r.json();
+      const tb = document.querySelector('#tbl tbody');
+      tb.innerHTML = '';
+      for(const v of (d.list||[])){
+        const tr = document.createElement('tr');
+        const cls = (v.percent||0)>=0?'pos':'neg';
+        const link = '/shares/echarts/echarts.html?tag=daily&code='+encodeURIComponent(v.code);
+        tr.innerHTML = `
+          <td><a href="${link}" target="_blank">${v.code}</a></td>
+          <td>${v.name||''}</td>
+          <td class="${cls}">${fmt2(v.percent)}%</td>
+          <td>${fmt2(v.price)}</td>
+        `;
+        tb.appendChild(tr);
+      }
+    }
+    document.addEventListener('DOMContentLoaded', load);
+  </script>
+</body>
+</html>
+

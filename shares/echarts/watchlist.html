@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>自选股分组</title>
+  <style>
+    body { margin:0; font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+    .wrap { padding: 10px; }
+    .row { margin-bottom: 10px; }
+    input, button, select { padding: 6px 8px; font-size: 14px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 10px; }
+    th, td { padding: 6px 8px; border-bottom: 1px solid #eee; text-align: left; }
+    th { position: sticky; top: 0; background: #fafafa; z-index: 1; }
+    .pos { color: #e54d42; }
+    .neg { color: #39b54a; }
+    .muted { color: #888; font-size: 12px; }
+    .leaders a { margin-right: 6px; text-decoration: none; display: inline-block; margin-bottom: 4px; }
+    .chips { max-height: 42px; overflow: hidden; }
+    .chips.expanded { max-height: none; }
+    .chips .toggle { color: #08c; margin-left: 6px; }
+    @media (max-width: 768px) { .leaders a { white-space: normal; word-break: break-word; } }
+    .flex { display:flex; gap:8px; align-items:center; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h3>自选股分组（本地存储，无需登录）</h3>
+    <div class="row flex">
+      <label>分组：</label>
+      <select id="groupSel"></select>
+      <input id="groupName" placeholder="新分组名称" />
+      <button onclick="addGroup()">新增分组</button>
+      <button onclick="renameGroup()">重命名</button>
+      <button onclick="delGroup()">删除分组</button>
+    </div>
+    <div class="row flex">
+      <input id="codeInput" placeholder="代码或名称，如 600000 或 浦发银行" style="min-width:260px"/>
+      <button onclick="addCode()">添加到当前分组</button>
+      <button onclick="refresh()">刷新榜单</button>
+      <span class="muted">（支持多个：逗号分隔）</span>
+    </div>
+
+    <table id="tbl">
+      <thead>
+        <tr>
+          <th style="width:12%"><a href="#" onclick="toggleSort('code');return false;">代码</a></th>
+          <th style="width:14%"><a href="#" onclick="toggleSort('name');return false;">名称</a></th>
+          <th style="width:10%"><a href="#" onclick="toggleSort('percent');return false;">涨幅</a></th>
+          <th style="width:10%"><a href="#" onclick="toggleSort('price');return false;">现价</a></th>
+          <th style="width:8%">几板</th>
+          <th style="width:10%">首封</th>
+          <th>概念</th>
+          <th style="width:10%">现量</th>
+          <th style="width:10%">涨速</th>
+          <th style="width:10%">换手</th>
+          <th style="width:8%">操作</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    const KEY = 'shares_watch_groups_v1';
+    function loadStore(){ try { return JSON.parse(localStorage.getItem(KEY)) || { groups:[{name:'自选1', codes:[]}] }; } catch(e){ return { groups:[{name:'自选1', codes:[]}] }; } }
+    function saveStore(s){ localStorage.setItem(KEY, JSON.stringify(s)); }
+    let store = loadStore();
+
+    function initGroupSel(){
+      const sel = document.getElementById('groupSel');
+      sel.innerHTML = '';
+      store.groups.forEach((g,idx)=>{
+        const opt = document.createElement('option'); opt.value=idx; opt.textContent=g.name; sel.appendChild(opt);
+      });
+    }
+    function current(){ const idx = +document.getElementById('groupSel').value || 0; return store.groups[idx]; }
+    function addGroup(){ const name = document.getElementById('groupName').value.trim(); if(!name){alert('请输入名称');return;} store.groups.push({name, codes:[]}); saveStore(store); initGroupSel(); }
+    function renameGroup(){ const g=current(); const name = document.getElementById('groupName').value.trim(); if(!name){alert('请输入名称');return;} g.name = name; saveStore(store); initGroupSel(); }
+    function delGroup(){ const idx = +document.getElementById('groupSel').value || 0; if(!confirm('删除分组?')) return; store.groups.splice(idx,1); if(store.groups.length===0) store.groups=[{name:'自选1', codes:[]}]; saveStore(store); initGroupSel(); refresh(); }
+
+    async function normalizeCode(input){
+      input = input.trim(); if(!input) return null;
+      if(/^((sh|sz|hk)\d+)/i.test(input)) return input.toLowerCase();
+      if(/^\d{5,6}$/.test(input)) return (await guessMarket(input));
+      // 名称模糊搜索
+      const r = await fetch('/shares/api/v1/analy.quick_search?q='+encodeURIComponent(input));
+      const d = await r.json();
+      if(d && d.list && d.list.length>0) return d.list[0].code;
+      return null;
+    }
+
+    async function guessMarket(num){
+      // 简单规则：6xxxx -> sh，0/3xxxx -> sz；否则返回原值
+      if(/^6/.test(num)) return 'sh'+num; if(/^(0|3)/.test(num)) return 'sz'+num; return num;
+    }
+
+    async function addCode(){
+      const g = current();
+      const raw = document.getElementById('codeInput').value;
+      const parts = raw.split(',');
+      for(const p of parts){
+        const code = await normalizeCode(p);
+        if(code && !g.codes.includes(code)) g.codes.push(code);
+      }
+      saveStore(store);
+      refresh();
+    }
+
+    function removeCode(code){ const g=current(); g.codes = g.codes.filter(x=>x!==code); saveStore(store); refresh(); }
+
+    function fmt2(n){ return (n||0).toFixed(2); }
+    let listData = [];
+    let sortKey = 'percent'; let order='desc';
+    function sortList(){
+      listData.sort((a,b)=>{
+        const A=a[sortKey], B=b[sortKey];
+        if(sortKey==='code'||sortKey==='name'){ return order==='asc' ? String(A).localeCompare(String(B)) : String(B).localeCompare(String(A)); }
+        return order==='asc' ? (A-B) : (B-A);
+      });
+    }
+    function toggleSort(k){ if(sortKey===k){ order= order==='asc'?'desc':'asc'; } else { sortKey=k; order='desc'; } render(); }
+    async function refresh(){
+      const g = current();
+      const tb = document.querySelector('#tbl tbody');
+      tb.innerHTML = '';
+      if(!g || g.codes.length===0) return;
+      const resp = await fetch('/shares/api/v1/analy.pick_codes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ codes: g.codes, limit: Math.max(1000, g.codes.length) })
+      });
+      const data = await resp.json();
+      listData = data.list||[]; render();
+    }
+    function render(){
+      sortList();
+      const tb = document.querySelector('#tbl tbody'); tb.innerHTML='';
+      for(const row of (listData||[])){
+        const tr = document.createElement('tr');
+        const pc = (row.percent||0);
+        const cls = pc>=0?'pos':'neg';
+        const link = '/shares/echarts/echarts.html?tag=daily&code='+encodeURIComponent(row.code);
+        const concepts = (row.concepts||'').split(',').filter(Boolean);
+        const chipsLinks = concepts.map(x=>`<a href=\"/shares/echarts/concept.html?name=${encodeURIComponent(x)}\" target=\"_blank\">${x}</a>`).join(' ');
+        const chips = `<div class=\"chips\">${chipsLinks}${concepts.length>8? ' <a href=\"#\" class=\"toggle\" onclick=\"toggleChips(this);return false;\">展开</a>':''}</div>`;
+        tr.innerHTML = `
+          <td><a href="${link}" target="_blank">${row.code}</a></td>
+          <td>${row.name||''}</td>
+          <td class="${cls}">${fmt2(pc)}%</td>
+          <td>${fmt2(row.price)}</td>
+          <td>${row.boards||0}</td>
+          <td>${row.firstSeal||''}</td>
+          <td class="leaders">${chips}</td>
+          <td>${row.curVol||0}</td>
+          <td>${fmt2(row.speed)}%</td>
+          <td>${fmt2(row.turnoverRt)}%</td>
+          <td><button onclick="removeCode('${row.code}')">移除</button></td>
+        `;
+        tb.appendChild(tr);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', ()=>{ initGroupSel(); refresh(); });
+    function toggleChips(el){ const box = el.closest('.chips'); if(!box){return} if(box.classList.contains('expanded')){ box.classList.remove('expanded'); el.textContent='展开'; } else { box.classList.add('expanded'); el.textContent='收起'; } }
+  </script>
+</body>
+</html>

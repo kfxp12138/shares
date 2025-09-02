@@ -5,7 +5,7 @@ import (
 )
 
 func init() {
-	ginrpc.SetVersion(1756788546)
+	ginrpc.SetVersion(1756798063)
 	ginrpc.AddGenOne("Weixin.GetQrcode", "weixin.get_qrcode", []string{"post"}, []ginrpc.GenThirdParty{}, `获取微信二维码`)
 	ginrpc.AddGenOne("Weixin.GetUserInfo", "weixin.get_user_info", []string{"post"}, []ginrpc.GenThirdParty{}, ``)
 	ginrpc.AddGenOne("Weixin.Oauth", "weixin.oauth", []string{"post"}, []ginrpc.GenThirdParty{}, `微信授权获取登录信息`)

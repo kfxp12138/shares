@@ -1,11 +1,11 @@
 package analy
 
 import (
-	"fmt"
-	"shares/internal/core"
-	"shares/internal/model"
-	"strings"
-	"time"
+    "fmt"
+    "shares/internal/core"
+    "shares/internal/model"
+    "strings"
+    "time"
 
 	"github.com/xxjwxc/public/message"
 	"github.com/xxjwxc/public/myhttp"
@@ -42,9 +42,18 @@ func initHY() {
 
 // 初始化行业,板块数据
 func initHYCode() {
-	orm := core.Dao.GetDBw()
-	hylist, _ := model.HyInfoTblMgr(orm.DB).Gets()
-	mpTmp := make(map[string][]string)
+    orm := core.Dao.GetDBw()
+    hylist, _ := model.HyInfoTblMgr(orm.DB).Gets()
+    // 概念主表/别名表/映射表
+    orm.Exec("CREATE TABLE IF NOT EXISTS concept_master_tbl (\n  id int(11) NOT NULL AUTO_INCREMENT,\n  hy_code varchar(255) DEFAULT NULL,\n  name varchar(255) NOT NULL,\n  created_at datetime DEFAULT NULL,\n  UNIQUE KEY name (name),\n  PRIMARY KEY (id)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;")
+    orm.Exec("CREATE TABLE IF NOT EXISTS concept_alias_tbl (\n  id int(11) NOT NULL AUTO_INCREMENT,\n  alias varchar(255) NOT NULL,\n  name varchar(255) NOT NULL,\n  created_at datetime DEFAULT NULL,\n  UNIQUE KEY alias (alias),\n  PRIMARY KEY (id)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;")
+    orm.Exec("CREATE TABLE IF NOT EXISTS concept_map_tbl (\n  id int(11) NOT NULL AUTO_INCREMENT,\n  code varchar(255) DEFAULT NULL,\n  hy_code varchar(255) DEFAULT NULL,\n  concept_id int(11) DEFAULT NULL,\n  name varchar(255) DEFAULT NULL,\n  created_at datetime DEFAULT NULL,\n  UNIQUE KEY code_name (code,name),\n  PRIMARY KEY (id)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;")
+    // 兼容旧表：容错增加 concept_id 列
+    orm.Exec("ALTER TABLE concept_map_tbl ADD COLUMN concept_id int(11) NULL")
+
+    mpTmp := make(map[string][]string)
+    nameToHy := make(map[string]string)
+    for _, v := range hylist { nameToHy[v.Name] = v.HyCode }
 	for _, v := range hylist {
 		var list []Diff
 		for i := 1; i < 20; i++ {
@@ -69,14 +78,27 @@ func initHYCode() {
 
 	// 获取各自行业具体股票
 	// model.HyGroupTblMgr(orm.DB).Exec(fmt.Sprintf("TRUNCATE TABLE  %v;", (&model.HyGroupTbl{}).TableName()))
-	for code, v := range mpTmp {
-		// model.HyGroupTblMgr(orm.DB).Save(&model.HyGroupTbl{
+    for code, v := range mpTmp {
+        // model.HyGroupTblMgr(orm.DB).Save(&model.HyGroupTbl{
 		// 	Code:      code,
 		// 	HyName:    strings.Join(v, ","),
 		// 	CreatedAt: time.Now(),
 		// })
-		model.SharesInfoTblMgr(orm.Where("code = ?", code)).Update(model.SharesInfoTblColumns.HyName, strings.Join(v, ","))
-	}
+        model.SharesInfoTblMgr(orm.Where("code = ?", code)).Update(model.SharesInfoTblColumns.HyName, strings.Join(v, ","))
+
+        // 结构化存储：concept_map_tbl(code, concept_id, hy_code, name)
+        orm.Exec("DELETE FROM concept_map_tbl WHERE code = ?", code)
+        for _, rawName := range v {
+            name := canonicalizeConcept(rawName)
+            hyCode := nameToHy[rawName]
+            // upsert to master
+            orm.Exec("INSERT IGNORE INTO concept_master_tbl(name,hy_code,created_at) VALUES(?,?,?)", name, hyCode, time.Now())
+            // fetch id
+            var cid int
+            orm.Raw("SELECT id FROM concept_master_tbl WHERE name = ? LIMIT 1", name).Scan(&cid)
+            orm.Exec("INSERT INTO concept_map_tbl(code,concept_id,hy_code,name,created_at) VALUES(?,?,?,?,?)", code, cid, hyCode, name, time.Now())
+        }
+    }
 }
 
 func initHYDaily() {

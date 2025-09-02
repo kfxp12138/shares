@@ -25,6 +25,16 @@
   - 示例：`http://localhost:8082/shares/echarts/board.html`
   - 代码参考：`shares/shares/echarts/board.html`
 
+- 页面：`/shares/echarts/myboard.html`
+  - 说明：自选股榜单，展示代码、名称、涨幅、现价、几板、首封时间、概念、现量、涨速、换手。
+  - 示例：`http://localhost:8082/shares/echarts/myboard.html`（需要已登录）
+  - 代码参考：`shares/shares/echarts/myboard.html`
+
+- 页面：`/shares/echarts/watchlist.html`
+  - 说明：前端维护的“自选股分组”，本地存储（localStorage），无需 Cookie/登录；通过接口聚合展示。
+  - 示例：`http://localhost:8082/shares/echarts/watchlist.html`
+  - 代码参考：`shares/shares/echarts/watchlist.html`
+
 ## 2) 数据 API（页面数据源）
 
 - POST `/shares/api/v1/shares.dayliy`（日K数据）
@@ -92,6 +102,36 @@
     - 路由注册：`shares/shares/internal/routers/api_root.go`
     - 实现：`shares/shares/internal/service/analy/board.go`
 
+- GET/POST `/shares/api/v1/analy.my_board`（自选股榜单）
+  - 入参（query 或 JSON）：`{ "limit": 100 }`
+  - 返回：`{ list: [ { code,name,percent,price,boards,firstSeal,concepts,curVol,speed,turnoverRt } ] }`
+  - 说明：
+    - 代码集合来自当前登录用户的 `shares_watch_tbl`
+    - 涨幅/现价：实时快照（腾讯）
+    - 换手率：实时明细（腾讯全量接口）
+    - 现量/涨速/首封时间：分钟线估算（ifzq），涨停阈值按 10%/20%/5% 规则近似
+    - 几板：以 `shares_daily_tbl` 连续涨停 + 当日实时近似
+  - 代码参考：
+    - 路由注册：`shares/shares/internal/routers/api_root.go`
+    - 实现：`shares/shares/internal/service/analy/myboard.go`
+
+- GET/POST `/shares/api/v1/analy.pick_codes`（自选代码榜单，无需登录）
+  - 入参：`codes` 逗号分隔或 JSON 数组，`limit`（默认 100）
+  - 返回：同上 `MyBoardResp` 结构，用于前端自选分组聚合
+  - 代码参考：
+    - 路由注册：`shares/shares/internal/routers/api_root.go`
+    - 实现：`shares/shares/internal/service/analy/pick_codes.go`
+
+- GET `/shares/api/v1/analy.quick_search`（简易搜索，无需登录）
+  - 入参：`q`（名称关键字或代码前缀）
+  - 返回：`{ list: [ { code,name,hyName } ] }`（最多 10 条）
+  - 用途：前端 watchlist 名称快速补全为标准代码
+
+- GET/POST `/shares/api/v1/analy.dev_login`（一键登录，开发用）
+  - 入参：`openid`（可选，默认 `dev_openid`），`nick`（可选）
+  - 效果：创建/更新 `wx_userinfo`，并设置 Cookie：`user_token`（openid）、`session_token`（sessionId）
+  - 用途：在无微信的环境下快速获得登录态，以访问需要登录的接口/页面（如 myboard）
+
 ## 4) 监控与文档（可视化相关）
 
 - GET `/shares/api/v1/metrics`（Prometheus 指标，可接入 Grafana）
@@ -127,3 +167,16 @@
 - 404 页面：确认服务已挂载静态目录（main.go 已注册 `/shares/echarts`、`/shares/docs`），并重启进程。
 - 无法继续刷新：分时接口返回 `ref=false` 表示当前不在交易活跃时段，可停止轮询。
 - 跨域：已启用 CORS，可直接在浏览器前端调用 API（见 `routers.Cors()`）。
+
+## 7) 快速访问示例
+
+日K图: http://localhost:8082/shares/echarts/echarts.html?tag=daily&code=sh600000
+分时图: http://localhost:8082/shares/echarts/echarts.html?tag=min&code=sh600000
+热板榜单: http://localhost:8082/shares/echarts/board.html
+自选榜单(带一键登录): http://localhost:8082/shares/echarts/myboard.html
+本地自选分组(多分组): http://localhost:8082/shares/echarts/watchlist.html
+打开导入页面: http://localhost:8082/shares/echarts/import_concepts.html
+一键登录（开发）
+
+直接打开: http://localhost:8082/shares/api/v1/analy.dev_login?openid=dev_openid&nick=%E5%BC%80%E5%8F%91%E8%80%85
+或在 myboard 页面点击“一键登录（开发）”

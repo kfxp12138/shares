@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>自选股榜单</title>
+  <style>
+    body { margin:0; font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+    .wrap { padding: 10px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 6px 8px; border-bottom: 1px solid #eee; text-align: left; }
+    th { position: sticky; top: 0; background: #fafafa; z-index: 1; }
+    .pos { color: #e54d42; }
+    .neg { color: #39b54a; }
+    .muted { color: #888; font-size: 12px; }
+    .leaders a { margin-right: 6px; text-decoration: none; display: inline-block; margin-bottom: 4px; }
+    .chips { max-height: 42px; overflow: hidden; }
+    .chips.expanded { max-height: none; }
+    .chips .toggle { color: #08c; margin-left: 6px; }
+    @media (max-width: 768px) { .leaders a { white-space: normal; word-break: break-word; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h3>自选股榜单</h3>
+    <div class="muted">需要登录。开发环境可使用“一键登录（开发）”。</div>
+    <div class="row"><button onclick="devLogin()">一键登录（开发）</button></div>
+    <table id="tbl">
+      <thead>
+        <tr>
+          <th style="width:12%"><a href="#" onclick="toggleSort('code');return false;">代码</a></th>
+          <th style="width:14%"><a href="#" onclick="toggleSort('name');return false;">名称</a></th>
+          <th style="width:10%"><a href="#" onclick="toggleSort('percent');return false;">涨幅</a></th>
+          <th style="width:10%"><a href="#" onclick="toggleSort('price');return false;">现价</a></th>
+          <th style="width:8%">几板</th>
+          <th style="width:10%">首封</th>
+          <th>概念</th>
+          <th style="width:10%">现量</th>
+          <th style="width:10%">涨速</th>
+          <th style="width:10%">换手</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    function fmt2(n){ return (n||0).toFixed(2); }
+    let listData=[]; let sortKey='percent', order='desc';
+    function sortList(){
+      listData.sort((a,b)=>{
+        const A=a[sortKey], B=b[sortKey];
+        if(sortKey==='code'||sortKey==='name'){ return order==='asc' ? String(A).localeCompare(String(B)) : String(B).localeCompare(String(A)); }
+        return order==='asc' ? (A-B) : (B-A);
+      });
+    }
+    function toggleSort(k){ if(sortKey===k){ order= order==='asc'?'desc':'asc'; } else { sortKey=k; order='desc'; } render(); }
+    async function load(limit=100) {
+      const resp = await fetch('/shares/api/v1/analy.my_board?limit='+limit, { credentials:'include' });
+      if(!resp.ok){
+        const t = await resp.text();
+        alert('加载失败: '+t);
+        return;
+      }
+      const data = await resp.json();
+      listData = data.list || [];
+      render();
+    }
+    function render(){
+      sortList();
+      const tb = document.querySelector('#tbl tbody');
+      tb.innerHTML = '';
+      for (const row of (listData || [])) {
+        const tr = document.createElement('tr');
+        const pc = (row.percent||0);
+        const cls = pc >= 0 ? 'pos' : 'neg';
+        const link = '/shares/echarts/echarts.html?tag=daily&code='+encodeURIComponent(row.code);
+        const concepts = (row.concepts||'').split(',').filter(Boolean);
+        const chipsLinks = concepts.map(x=>`<a href="/shares/echarts/concept.html?name=${encodeURIComponent(x)}" target="_blank">${x}</a>`).join(' ');
+        const chips = `<div class="chips">${chipsLinks}${concepts.length>8? ' <a href="#" class="toggle" onclick="toggleChips(this);return false;">展开</a>':''}</div>`;
+        tr.innerHTML = `
+          <td><a href="${link}" target="_blank">${row.code}</a></td>
+          <td>${row.name||''}</td>
+          <td class="${cls}">${fmt2(pc)}%</td>
+          <td>${fmt2(row.price)}</td>
+          <td>${row.boards||0}</td>
+          <td>${row.firstSeal||''}</td>
+          <td class="leaders">${chips}</td>
+          <td>${row.curVol||0}</td>
+          <td>${fmt2(row.speed)}%</td>
+          <td>${fmt2(row.turnoverRt)}%</td>
+        `;
+        tb.appendChild(tr);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => load());
+    async function devLogin(){
+      const r = await fetch('/shares/api/v1/analy.dev_login');
+      if(r.ok){ location.reload(); } else { alert('一键登录失败'); }
+    }
+    function toggleChips(el){ const box = el.closest('.chips'); if(!box){return} if(box.classList.contains('expanded')){ box.classList.remove('expanded'); el.textContent='展开'; } else { box.classList.add('expanded'); el.textContent='收起'; } }
+  </script>
+</body>
+</html>
