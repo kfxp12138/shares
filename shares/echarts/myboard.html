@@ -46,6 +46,7 @@
 
   <script>
     function fmt2(n){ return (n||0).toFixed(2); }
+    function parseConcepts(s){ if(!s) return []; const arr=(s||'').split(/[，,、;；|\u007C]/).map(x=>x.trim()).filter(Boolean); return Array.from(new Set(arr)); }
     let listData=[]; let sortKey='percent', order='desc';
     function sortList(){
       listData.sort((a,b)=>{
@@ -75,7 +76,7 @@
         const pc = (row.percent||0);
         const cls = pc >= 0 ? 'pos' : 'neg';
         const link = '/shares/echarts/echarts.html?tag=daily&code='+encodeURIComponent(row.code);
-        const concepts = (row.concepts||'').split(',').filter(Boolean);
+        const concepts = parseConcepts(row.concepts||'');
         const chipsLinks = concepts.map(x=>`<a href="/shares/echarts/concept.html?name=${encodeURIComponent(x)}" target="_blank">${x}</a>`).join(' ');
         const chips = `<div class="chips">${chipsLinks}${concepts.length>8? ' <a href="#" class="toggle" onclick="toggleChips(this);return false;">展开</a>':''}</div>`;
         tr.innerHTML = `

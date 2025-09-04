@@ -168,7 +168,13 @@
 - 无法继续刷新：分时接口返回 `ref=false` 表示当前不在交易活跃时段，可停止轮询。
 - 跨域：已启用 CORS，可直接在浏览器前端调用 API（见 `routers.Cors()`）。
 
-## 7) 快速访问示例
+## 7) 概念导入（定时 + 手动 + 立即）
+
+- 定时（推荐）：在 `conf/config.yml` 配置 `adata.concepts_url`，服务将于每日 08:00 自动拉取并刷新概念映射。
+- 手动：打开导入页面 `/shares/echarts/import_concepts.html` 粘贴 JSON 或提供 URL；或直接调用 `POST /shares/api/v1/analy.refresh_concepts?source=adata`。
+- 立即：`GET/POST /shares/api/v1/analy.refresh_concepts_now` 按配置 URL 立即刷新。
+
+## 8) 快速访问示例
 
 日K图: http://localhost:8082/shares/echarts/echarts.html?tag=daily&code=sh600000
 分时图: http://localhost:8082/shares/echarts/echarts.html?tag=min&code=sh600000

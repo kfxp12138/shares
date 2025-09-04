@@ -147,9 +147,10 @@
 ## 9. 概念映射（代码 ↔ 概念/板块）
 
 - 刷新入口：`POST /shares/api/v1/analy.refresh_concepts`
-  - 支持两种来源：
-    - 东财：触发 `initHY()` + `initHYCode()`，重建板块列表并回填 `shares_info_tbl.hy_name` + `concept_map_tbl`
-    - adata：`POST /analy.refresh_concepts?source=adata`，Body 传入概念 JSON（详见 VISUAL_API），同样落表（概念归一化支持）
+  - 当前实现采用 adata 源：
+    - HTTP：`POST /analy.refresh_concepts?source=adata`，Body 传概念 JSON（详见 VISUAL_API），落库到 `concept_*` 与回填 `shares_info_tbl.hy_name`
+    - 定时：每日 08:00 自动从 `conf/config.yml` 的 `adata.concepts_url` 拉取并刷新（如未配置则跳过）
+    - 立即：`GET/POST /analy.refresh_concepts_now` 按配置 URL 立即刷新
 - 查询接口：
   - `GET/POST /shares/api/v1/analy.concepts_by_code?code=sh600000`
   - `GET /shares/api/v1/analy.search_concepts?q=机器人`

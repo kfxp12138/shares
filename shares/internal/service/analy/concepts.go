@@ -5,6 +5,7 @@ import (
     "strings"
 
     "shares/internal/api"
+    "shares/internal/config"
     "shares/internal/core"
     "shares/internal/model"
     "gorm.io/datatypes"
@@ -23,6 +24,20 @@ func RefreshConcepts(c *api.Context) { // 仅支持 adata 来源
         return
     }
     c.GetGinCtx().JSON(http.StatusOK, map[string]any{"status": "ok", "source": "adata"})
+}
+
+// RefreshConceptsNow 立即按配置 URL 刷新（adata.concepts_url）
+func RefreshConceptsNow(c *api.Context) {
+    url := config.GetAdataConceptsURL()
+    if strings.TrimSpace(url) == "" {
+        c.GetGinCtx().JSON(http.StatusBadRequest, map[string]string{"err": "adata.concepts_url not set in config"})
+        return
+    }
+    if err := refreshConceptsFromURLString(url); err != nil {
+        c.GetGinCtx().JSON(http.StatusInternalServerError, map[string]string{"err": err.Error()})
+        return
+    }
+    c.GetGinCtx().JSON(http.StatusOK, map[string]any{"status": "ok", "url": url})
 }
 
 // ConceptsByCode 返回某代码的概念（从 shares_info_tbl.hy_name 拆分）

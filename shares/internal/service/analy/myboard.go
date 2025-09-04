@@ -27,7 +27,8 @@ type MyBoardRow struct {
     Price      float64 `json:"price"`      // 现价
     Boards     int     `json:"boards"`     // 几板（近端估算）
     FirstSeal  string  `json:"firstSeal"`  // 首封时间（HH:MM），若未触及涨停则为空
-    Concepts   string  `json:"concepts"`   // 概念板块（hy_name）
+    Concepts   string  `json:"concepts"`             // 概念板块（字符串，逗号分隔）
+    ConceptsArr []string `json:"conceptsArr,omitempty"` // 概念数组（前端更易用）
     CurVol     int64   `json:"curVol"`     // 现量（最近一分钟成交量）
     Speed      float64 `json:"speed"`      // 涨速（最近一分钟涨幅增量，pct）
     TurnoverRt float64 `json:"turnoverRt"` // 换手率（%）
@@ -96,10 +97,34 @@ func MyBoard(c *api.Context) {
     if infos, err := model.SharesInfoTblMgr(ormR.Where("code in (?)", codes)).Gets(); err == nil {
         for _, s := range infos { hyMp[s.Code] = s.HyName }
     }
-    type cm struct{ Code string; Name string }
+    type cm struct{ Code string; Names string }
     var cms []cm
-    ormR.Raw("SELECT code, GROUP_CONCAT(name) AS name FROM concept_map_tbl WHERE code IN (?) GROUP BY code", codes).Scan(&cms)
-    for _, v := range cms { if v.Name != "" { hyMp[v.Code] = v.Name } }
+    // 1) 完整代码
+    ormR.Raw("SELECT code, GROUP_CONCAT(name ORDER BY id SEPARATOR ',') AS names FROM concept_map_tbl WHERE code IN (?) GROUP BY code", codes).Scan(&cms)
+    for _, v := range cms {
+        if v.Names == "" { continue }
+        merged, _ := mergeConcepts(hyMp[v.Code], v.Names)
+        hyMp[v.Code] = merged
+    }
+    // 2) 简码（兼容历史）
+    simpleMap := map[string]string{}
+    var simples []string
+    for _, full := range codes {
+        s := full
+        if strings.HasPrefix(s, "sh") || strings.HasPrefix(s, "sz") || strings.HasPrefix(s, "hk") || strings.HasPrefix(s, "bj") {
+            s = s[2:]
+        }
+        simpleMap[s] = full
+        simples = append(simples, s)
+    }
+    var cms2 []cm
+    ormR.Raw("SELECT code, GROUP_CONCAT(name ORDER BY id SEPARATOR ',') AS names FROM concept_map_tbl WHERE code IN (?) GROUP BY code", simples).Scan(&cms2)
+    for _, v := range cms2 {
+        full := simpleMap[v.Code]
+        if full == "" || v.Names == "" { continue }
+        merged, _ := mergeConcepts(hyMp[full], v.Names)
+        hyMp[full] = merged
+    }
 
     // 计算榜单
     var rows []*MyBoardRow
@@ -162,6 +187,8 @@ func MyBoard(c *api.Context) {
             tor = d.TurnoverRate
         }
 
+        // 合并概念：hy_name 与 concept_map_tbl
+        mergedStr, mergedArr := mergeConcepts(hyMp[code], "")
         rows = append(rows, &MyBoardRow{
             Code:       b.Code,
             Name:       b.Name,
@@ -169,7 +196,8 @@ func MyBoard(c *api.Context) {
             Price:      round2(b.Price),
             Boards:     boards,
             FirstSeal:  firstSeal,
-            Concepts:   hyMp[code],
+            Concepts:   mergedStr,
+            ConceptsArr: mergedArr,
             CurVol:     curVol,
             Speed:      round2(speed),
             TurnoverRt: round2(tor),

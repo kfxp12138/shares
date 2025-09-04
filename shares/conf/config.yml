@@ -33,3 +33,8 @@ file_host: https://www.localhost.com/shares/api/v1
 max_capacity : 5
 def_group: 默认指标
 ext : [sh,sz,hk]
+adata:
+concepts_url: "" # 可选：URL 定时刷新
+python: python3 # 或绝对路径 /usr/bin/python3
+script: ./scripts/adata_concepts.py
+args: [] # 可选参数数组  # 可选：脚本参数列表

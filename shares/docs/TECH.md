@@ -70,7 +70,8 @@
 - 运行管线：
   - 盘中（OnDealDay/OnDeal）：按周期拉取盯盘股票实时行情，写入缓存（2h TTL），并触发规则（价格突破、百分比、MA 上下穿、快速涨跌）。
   - 收盘后（DayAfter）：批量刷新 `shares_info_tbl` 快照、写入 `shares_daily_tbl`、计算 MA5/10/20、行业主力净流入等。
-  - 固定时点：每日 8:00 北上数据、20:00 龙虎榜数据（maBS/maLhb）。
+  - 固定时点：每日 8:00 概念映射（adata 源，见 `adata.concepts_url`）、8:00 北上数据、20:00 龙虎榜数据（maBS/maLhb）。
+  - 管理接口：`GET/POST /shares/api/v1/analy.refresh_concepts_now` 立即按配置 URL 刷新概念。
 - 实时报警：
   - 快速涨跌：三分钟窗口，涨幅≥3% 或跌幅≥4%（午后权重加倍）；
   - 价格/百分比阈值：Up/Down/UpPercent/DownPercent；
@@ -85,7 +86,7 @@
 - `msg_tbl`、`msg_rapidly_tbl`：推送消息与去重标记
 - `wx_userinfo`：用户信息（openid、昵称、分组、容量、偏好等）
 - `group_tbl`、`group_list_tbl`：分组与成员关系
-- 行业与榜单：`hy_daily_tbl`、`lhb_daily_tbl`、`zljlr_daily_tbl`
+- 行业与榜单：`hy_daily_tbl`、`lhb_daily_tbl`、`zljlr_daily_tbl`；概念结构化：`concept_master_tbl`、`concept_map_tbl`、`concept_alias_tbl`
 
 模型文件位于 `shares/shares/internal/model/*.go`。
 
@@ -99,6 +100,7 @@
   - `wx_info`：微信相关（AppID/AppSecret/APIKey/MchID/NotifyURL/ShearURL）
   - `port`：默认 82；`file_host`：二维码等外链前缀
   - `max_capacity`：用户默认容量；`def_group`：默认分组；`ext`：`[sh,sz,hk]`
+  - `adata.concepts_url`：概念映射 adata JSON 源（配置后每日 08:00 自动刷新）
 
 ## 八、运行与构建
 

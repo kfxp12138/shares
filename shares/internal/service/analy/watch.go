@@ -1,41 +1,53 @@
 package analy
 
 import (
-	"fmt"
-	"shares/internal/config"
-	"shares/internal/core"
-	"shares/internal/model"
-	"shares/internal/service/event"
-	"shares/internal/service/weixin"
-	proto "shares/rpc/shares"
-	"strings"
-	"time"
+    "fmt"
+    "shares/internal/config"
+    "shares/internal/core"
+    "shares/internal/model"
+    "shares/internal/service/event"
+    "shares/internal/service/weixin"
+    proto "shares/rpc/shares"
+    "strings"
+    "time"
 
-	"github.com/xxjwxc/public/mylog"
-	"github.com/xxjwxc/public/timerDeal"
-	"github.com/xxjwxc/public/tools"
-	wx "github.com/xxjwxc/public/weixin"
-	"gorm.io/datatypes"
+    "github.com/xxjwxc/public/mylog"
+    "github.com/xxjwxc/public/timerDeal"
+    "github.com/xxjwxc/public/tools"
+    wx "github.com/xxjwxc/public/weixin"
+    "gorm.io/datatypes"
 )
 
 func init() {
-	if config.GetIsTools() > 0 {
-		return
-	}
+    if config.GetIsTools() > 0 {
+        return
+    }
 
-	timerDeal.OnPeDay(8, 0, 0, ticketHy) // 初始化行业
-	timerDeal.OnPeDay(9, 10, 0, maDaily) // 每天9点10分执行()
-	timerDeal.OnPeDay(10, 0, 0, watchFl)
-	timerDeal.OnPeDay(10, 10, 0, watchMyself) // 每日
-	timerDeal.OnPeDay(14, 30, 0, ticket14)
-	timerDeal.OnPeDay(16, 0, 0, ticketTJ)
+    // 概念导入由 adata 驱动，替代东财 initHY()
+    timerDeal.OnPeDay(8, 0, 0, ticketConceptsAdata)
+    timerDeal.OnPeDay(9, 10, 0, maDaily) // 每天9点10分执行()
+    timerDeal.OnPeDay(10, 0, 0, watchFl)
+    timerDeal.OnPeDay(10, 10, 0, watchMyself) // 每日
+    timerDeal.OnPeDay(14, 30, 0, ticket14)
+    timerDeal.OnPeDay(16, 0, 0, ticketTJ)
 }
 
-func ticketHy() {
-	if !event.IsWorkDay() {
-		return
-	}
-	initHY() // 初始化行业
+// ticketConceptsAdata 定时从 adata 源刷新概念映射
+func ticketConceptsAdata() {
+    // 概念归属与盘中无强关联，仍沿用工作日判定以减少无谓请求
+    if !event.IsWorkDay() {
+        return
+    }
+    url := config.GetAdataConceptsURL()
+    if strings.TrimSpace(url) == "" {
+        mylog.Infof("adata concepts url not set, skip refresh")
+        return
+    }
+    if err := refreshConceptsFromURLString(url); err != nil {
+        mylog.Infof("adata concepts refresh failed: %v", err)
+        return
+    }
+    mylog.Infof("adata concepts refreshed from %s", url)
 }
 
 func ticket14() { // 时间间隔

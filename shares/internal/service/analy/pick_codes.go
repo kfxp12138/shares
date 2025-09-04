@@ -68,18 +68,40 @@ func PickCodes(c *api.Context) {
     dMp := map[string]*proto.SharesInfoDetails{}
     for _, d := range details { dMp[d.Code] = d }
 
-    // 概念（优先结构化 concept_map_tbl，其次 shares_info_tbl.hy_name）
+    // 概念聚合：合并 shares_info_tbl.hy_name 与 concept_map_tbl 名称，确保“所有概念”完整返回
     hyMp := map[string]string{}
     if infos, err := model.SharesInfoTblMgr(core.Dao.GetDBr().Where("code in (?)", codes)).Gets(); err == nil {
         for _, s := range infos { hyMp[s.Code] = s.HyName }
     }
-    // 尝试用 FIND_IN_SET 规避驱动 IN (?) 展开异常
     if len(codes) > 0 {
-        joined := strings.Join(codes, ",")
         type cm struct{ Code string; Names string }
         var cms []cm
-        core.Dao.GetDBr().Raw("SELECT code, GROUP_CONCAT(name ORDER BY id SEPARATOR ',') AS names FROM concept_map_tbl WHERE FIND_IN_SET(code, ?) GROUP BY code", joined).Scan(&cms)
-        for _, v := range cms { if v.Names != "" { hyMp[v.Code] = v.Names } }
+        // 1) 先按完整代码聚合
+        core.Dao.GetDBr().Raw("SELECT code, GROUP_CONCAT(name ORDER BY id SEPARATOR ',') AS names FROM concept_map_tbl WHERE code IN (?) GROUP BY code", codes).Scan(&cms)
+        for _, v := range cms {
+            if v.Names == "" { continue }
+            merged, _ := mergeConcepts(hyMp[v.Code], v.Names)
+            hyMp[v.Code] = merged
+        }
+        // 2) 再按简码聚合（兼容历史导入为裸数字的情况）
+        simpleMap := map[string]string{}
+        var simples []string
+        for _, full := range codes {
+            s := full
+            if strings.HasPrefix(s, "sh") || strings.HasPrefix(s, "sz") || strings.HasPrefix(s, "hk") || strings.HasPrefix(s, "bj") {
+                s = s[2:]
+            }
+            simpleMap[s] = full
+            simples = append(simples, s)
+        }
+        var cms2 []cm
+        core.Dao.GetDBr().Raw("SELECT code, GROUP_CONCAT(name ORDER BY id SEPARATOR ',') AS names FROM concept_map_tbl WHERE code IN (?) GROUP BY code", simples).Scan(&cms2)
+        for _, v := range cms2 {
+            full := simpleMap[v.Code]
+            if full == "" || v.Names == "" { continue }
+            merged, _ := mergeConcepts(hyMp[full], v.Names)
+            hyMp[full] = merged
+        }
     }
 
     var rows []*MyBoardRow
@@ -120,6 +142,7 @@ func PickCodes(c *api.Context) {
         var tor float64
         if d := dMp[code]; d != nil { tor = d.TurnoverRate }
 
+        mergedStr, mergedArr := mergeConcepts(hyMp[code], "")
         rows = append(rows, &MyBoardRow{
             Code:       b.Code,
             Name:       b.Name,
@@ -127,7 +150,8 @@ func PickCodes(c *api.Context) {
             Price:      round2(b.Price),
             Boards:     boards,
             FirstSeal:  firstSeal,
-            Concepts:   hyMp[code],
+            Concepts:   mergedStr,
+            ConceptsArr: mergedArr,
             CurVol:     curVol,
             Speed:      round2(speed),
             TurnoverRt: round2(tor),

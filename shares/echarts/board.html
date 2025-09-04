@@ -12,6 +12,11 @@
     th { position: sticky; top: 0; background: #fafafa; z-index: 1; }
     .pos { color: #e54d42; }
     .neg { color: #39b54a; }
+    .leaders a { margin-right: 6px; text-decoration: none; display:inline-block; margin-bottom:4px; }
+    .chips { max-height: 42px; overflow: hidden; }
+    .chips.expanded { max-height: none; }
+    .chips .toggle { color:#08c; margin-left:6px; }
+    @media (max-width: 768px) { .leaders a { white-space: normal; word-break: break-word; } }
     .muted { color: #888; font-size: 12px; }
     .leaders a { margin-right: 6px; text-decoration: none; }
   </style>
@@ -78,7 +83,9 @@
         const pf = row.percent || 0;
         const cls = pf >= 0 ? 'pos' : 'neg';
         const link = '/shares/echarts/echarts.html?tag=daily&code='+encodeURIComponent(row.code);
-        const chips = (row.concepts||'').split(',').filter(Boolean).map(x=>`<a href="/shares/echarts/concept.html?name=${encodeURIComponent(x)}" target="_blank">${x}</a>`).join(' ');
+        const concepts = parseConcepts(row.concepts||'');
+        const chipsLinks = concepts.map(x=>`<a href="/shares/echarts/concept.html?name=${encodeURIComponent(x)}" target="_blank">${x}</a>`).join(' ');
+        const chips = `<div class="chips">${chipsLinks}${concepts.length>8? ' <a href="#" class="toggle" onclick="toggleChips(this);return false;">展开</a>':''}</div>`;
         tr.innerHTML = `
           <td><a href="${link}" target="_blank">${row.code}</a></td>
           <td>${row.name||''}</td>

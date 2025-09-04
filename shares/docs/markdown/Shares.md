@@ -8,239 +8,7 @@
 
 --------------------
 
-### DeleteMyCode
-
-#### 简要描述：
-
-- [删除一个监听]
-
-#### 请求URL:
-
-- http://localhost:8082/shares/api/v1/shares.delete_my_code
-
-#### 请求方式：
-
-- post
-
-#### 请求参数:
-
-- ` DeleteMyCodeReq ` : 
-
-|参数名|是否必须|类型|说明|
-|:----    |:---|:----- |-----   |
-|`code` | 否|string|股票代码   |
-
-
-#### 请求示例:
-```
-{
-     "code": ""
-}
-```
-
-#### 返回参数说明:
-
-- ` Empty ` : 
-
-|参数名|是否必须|类型|说明|
-|:----    |:---|:----- |-----   |
-
-
-#### 返回示例:
-	
-```
-{}
-```
-
-#### 备注:
-
-- 删除一个监听
-
---------------------
-
-### Gets
-
-#### 简要描述：
-
-- [精确查找代码]
-
-#### 请求URL:
-
-- http://localhost:8082/shares/api/v1/shares.gets
-
-#### 请求方式：
-
-- post
-
-#### 请求参数:
-
-- ` GetsReq ` : 
-
-|参数名|是否必须|类型|说明|
-|:----    |:---|:----- |-----   |
-|`codes` | 否|[]string|股票代码   |
-
-
-#### 请求示例:
-```
-{
-     "codes": [
-          ""
-     ]
-}
-```
-
-#### 返回参数说明:
-
-- ` GetsResp ` : 
-
-|参数名|是否必须|类型|说明|
-|:----    |:---|:----- |-----   |
-|`list` | 否|[]`shares.SimpleSharesInfo`|列表(只返回价格相关的信息(code,price,percent,color))   |
-
-
-#### 返回示例:
-	
-```
-{
-     "list": [
-          {
-               "code": "",
-               "color": "",
-               "percent": 0,
-               "price": 0
-          }
-     ]
-}
-```
-
-#### 备注:
-
-- 精确查找代码
-
---------------------
-
-### GetAllCodeName
-
-#### 简要描述：
-
-- [获取所有中文]
-
-#### 请求URL:
-
-- http://localhost:8082/shares/api/v1/shares.get_all_code_name
-
-#### 请求方式：
-
-- post
-
-#### 请求参数:
-
-- ` Empty ` : 
-
-|参数名|是否必须|类型|说明|
-|:----    |:---|:----- |-----   |
-
-
-#### 请求示例:
-```
-{}
-```
-
-#### 返回参数说明:
-
-- ` GetAllCodeNameResp ` : 
-
-|参数名|是否必须|类型|说明|
-|:----    |:---|:----- |-----   |
-|`list` | 否|[]`shares.CodeNameInfo`|代码列表   |
-
-
-#### 返回示例:
-	
-```
-{
-     "list": [
-          {
-               "code": "",
-               "name": "",
-               "sName": ""
-          }
-     ]
-}
-```
-
-#### 备注:
-
-- 获取所有中文
-
---------------------
-
-### GetMsg
-
-#### 简要描述：
-
-- [获取消息]
-
-#### 请求URL:
-
-- http://localhost:8082/shares/api/v1/shares.get_msg
-
-#### 请求方式：
-
-- post
-
-#### 请求参数:
-
-- ` Empty ` : 
-
-|参数名|是否必须|类型|说明|
-|:----    |:---|:----- |-----   |
-
-
-#### 请求示例:
-```
-{}
-```
-
-#### 返回参数说明:
-
-- ` GetMsgResp ` : 
-
-|参数名|是否必须|类型|说明|
-|:----    |:---|:----- |-----   |
-|`list` | 否|[]`shares.Msg`|消息列表   |
-
-
-#### 返回示例:
-	
-```
-{
-     "list": [
-          {
-               "code": "",
-               "color": "",
-               "desc": "",
-               "ext": "",
-               "key": "",
-               "name": "",
-               "now": "",
-               "percent": 0,
-               "price": 0,
-               "simpleCode": "",
-               "tag": ""
-          }
-     ]
-}
-```
-
-#### 备注:
-
-- 获取消息
-
---------------------
-
-### GetMyCode
+### Dayliy
 
 #### 简要描述：
 
@@ -248,7 +16,7 @@
 
 #### 请求URL:
 
-- http://localhost:8082/shares/api/v1/shares.get_my_code
+- http://localhost:8082/shares/api/v1/shares.dayliy
 
 #### 请求方式：
 
@@ -256,7 +24,7 @@
 
 #### 请求参数:
 
-- ` GetMyCodeReq ` : 
+- ` CodeReq ` : 
 
 |参数名|是否必须|类型|说明|
 |:----    |:---|:----- |-----   |
@@ -272,39 +40,123 @@
 
 #### 返回参数说明:
 
-- ` GetMyCodeResp ` : 
+
+#### 返回示例:
+	
+```
+{}
+```
+
+#### 备注:
+
+- 
+
+--------------------
+
+### GetMyGroup
+
+#### 简要描述：
+
+- [获取我的组织]
+
+#### 请求URL:
+
+- http://localhost:8082/shares/api/v1/shares.get_my_group
+
+#### 请求方式：
+
+- post
+
+#### 请求参数:
+
+- ` CodeReq ` : 
 
 |参数名|是否必须|类型|说明|
 |:----    |:---|:----- |-----   |
-|`list` | 否|[]`shares.AddMyCodeReq`|   |
+|`code` | 否|string|股票代码   |
+
+
+#### 请求示例:
+```
+{
+     "code": ""
+}
+```
+
+#### 返回参数说明:
+
+- ` GetMyGroupResp ` : 
+
+|参数名|是否必须|类型|说明|
+|:----    |:---|:----- |-----   |
+|`code` | 否|string|股票代码   |
+|`groupName` | 否|string|分组名   |
+|`userName` | 否|string|推荐人   |
+|`wi` | 否|int32|权重   |
+|`group` | 否|[]string|我的股票列表   |
 
 
 #### 返回示例:
 	
 ```
 {
-     "list": [
-          {
-               "ai": false,
-               "code": "",
-               "color": "",
-               "down": 0,
-               "downPercent": 0,
-               "ext": "",
-               "kdj": false,
-               "kdj20": false,
-               "name": "",
-               "percent": 0,
-               "price": 0,
-               "public": false,
-               "simpleCode": "",
-               "slump": false,
-               "surge": false,
-               "up": 0,
-               "upPercent": 0,
-               "vaild": false
-          }
-     ]
+     "code": "",
+     "group": [
+          ""
+     ],
+     "groupName": "",
+     "userName": "",
+     "wi": 0
+}
+```
+
+#### 备注:
+
+- 获取我的组织
+
+--------------------
+
+### HaveNewMsg
+
+#### 简要描述：
+
+- []
+
+#### 请求URL:
+
+- http://localhost:8082/shares/api/v1/shares.have_new_msg
+
+#### 请求方式：
+
+- post
+
+#### 请求参数:
+
+- ` Empty ` : 
+
+|参数名|是否必须|类型|说明|
+|:----    |:---|:----- |-----   |
+
+
+#### 请求示例:
+```
+{}
+```
+
+#### 返回参数说明:
+
+- ` HaveNewMsgResp ` : 
+
+|参数名|是否必须|类型|说明|
+|:----    |:---|:----- |-----   |
+|`badge` | 否|bool|是否有新消息   |
+
+
+#### 返回示例:
+	
+```
+{
+     "badge": false
 }
 ```
 
@@ -460,60 +312,15 @@
 
 --------------------
 
-### Dayliy
+### GetMsg
 
 #### 简要描述：
 
-- []
+- [获取消息]
 
 #### 请求URL:
 
-- http://localhost:8082/shares/api/v1/shares.dayliy
-
-#### 请求方式：
-
-- post
-
-#### 请求参数:
-
-- ` CodeReq ` : 
-
-|参数名|是否必须|类型|说明|
-|:----    |:---|:----- |-----   |
-|`code` | 否|string|股票代码   |
-
-
-#### 请求示例:
-```
-{
-     "code": ""
-}
-```
-
-#### 返回参数说明:
-
-
-#### 返回示例:
-	
-```
-{}
-```
-
-#### 备注:
-
-- 
-
---------------------
-
-### GetGroup
-
-#### 简要描述：
-
-- [获取分组]
-
-#### 请求URL:
-
-- http://localhost:8082/shares/api/v1/shares.get_group
+- http://localhost:8082/shares/api/v1/shares.get_msg
 
 #### 请求方式：
 
@@ -534,11 +341,11 @@
 
 #### 返回参数说明:
 
-- ` GetGroupResp ` : 请求结构
+- ` GetMsgResp ` : 
 
 |参数名|是否必须|类型|说明|
 |:----    |:---|:----- |-----   |
-|`list` | 否|[]`shares.Group`|列表   |
+|`list` | 否|[]`shares.Msg`|消息列表   |
 
 
 #### 返回示例:
@@ -547,22 +354,17 @@
 {
      "list": [
           {
-               "list": [
-                    {
-                         "attach": "",
-                         "code": "",
-                         "color": "",
-                         "ext": "",
-                         "hy": "",
-                         "img": "",
-                         "name": "",
-                         "peg": "",
-                         "percent": 0,
-                         "price": 0,
-                         "simpleCode": ""
-                    }
-               ],
-               "name": ""
+               "code": "",
+               "color": "",
+               "desc": "",
+               "ext": "",
+               "key": "",
+               "name": "",
+               "now": "",
+               "percent": 0,
+               "price": 0,
+               "simpleCode": "",
+               "tag": ""
           }
      ]
 }
@@ -570,7 +372,199 @@
 
 #### 备注:
 
-- 获取分组
+- 获取消息
+
+--------------------
+
+### GetAllCodeName
+
+#### 简要描述：
+
+- [获取所有中文]
+
+#### 请求URL:
+
+- http://localhost:8082/shares/api/v1/shares.get_all_code_name
+
+#### 请求方式：
+
+- post
+
+#### 请求参数:
+
+- ` Empty ` : 
+
+|参数名|是否必须|类型|说明|
+|:----    |:---|:----- |-----   |
+
+
+#### 请求示例:
+```
+{}
+```
+
+#### 返回参数说明:
+
+- ` GetAllCodeNameResp ` : 
+
+|参数名|是否必须|类型|说明|
+|:----    |:---|:----- |-----   |
+|`list` | 否|[]`shares.CodeNameInfo`|代码列表   |
+
+
+#### 返回示例:
+	
+```
+{
+     "list": [
+          {
+               "code": "",
+               "name": "",
+               "sName": ""
+          }
+     ]
+}
+```
+
+#### 备注:
+
+- 获取所有中文
+
+--------------------
+
+### GetMyCode
+
+#### 简要描述：
+
+- []
+
+#### 请求URL:
+
+- http://localhost:8082/shares/api/v1/shares.get_my_code
+
+#### 请求方式：
+
+- post
+
+#### 请求参数:
+
+- ` GetMyCodeReq ` : 
+
+|参数名|是否必须|类型|说明|
+|:----    |:---|:----- |-----   |
+|`code` | 否|string|股票代码   |
+
+
+#### 请求示例:
+```
+{
+     "code": ""
+}
+```
+
+#### 返回参数说明:
+
+- ` GetMyCodeResp ` : 
+
+|参数名|是否必须|类型|说明|
+|:----    |:---|:----- |-----   |
+|`list` | 否|[]`shares.AddMyCodeReq`|   |
+
+
+#### 返回示例:
+	
+```
+{
+     "list": [
+          {
+               "ai": false,
+               "code": "",
+               "color": "",
+               "down": 0,
+               "downPercent": 0,
+               "ext": "",
+               "kdj": false,
+               "kdj20": false,
+               "name": "",
+               "percent": 0,
+               "price": 0,
+               "public": false,
+               "simpleCode": "",
+               "slump": false,
+               "surge": false,
+               "up": 0,
+               "upPercent": 0,
+               "vaild": false
+          }
+     ]
+}
+```
+
+#### 备注:
+
+- 
+
+--------------------
+
+### Gets
+
+#### 简要描述：
+
+- [精确查找代码]
+
+#### 请求URL:
+
+- http://localhost:8082/shares/api/v1/shares.gets
+
+#### 请求方式：
+
+- post
+
+#### 请求参数:
+
+- ` GetsReq ` : 
+
+|参数名|是否必须|类型|说明|
+|:----    |:---|:----- |-----   |
+|`codes` | 否|[]string|股票代码   |
+
+
+#### 请求示例:
+```
+{
+     "codes": [
+          ""
+     ]
+}
+```
+
+#### 返回参数说明:
+
+- ` GetsResp ` : 
+
+|参数名|是否必须|类型|说明|
+|:----    |:---|:----- |-----   |
+|`list` | 否|[]`shares.SimpleSharesInfo`|列表(只返回价格相关的信息(code,price,percent,color))   |
+
+
+#### 返回示例:
+	
+```
+{
+     "list": [
+          {
+               "code": "",
+               "color": "",
+               "percent": 0,
+               "price": 0
+          }
+     ]
+}
+```
+
+#### 备注:
+
+- 精确查找代码
 
 --------------------
 
@@ -680,15 +674,15 @@
 
 --------------------
 
-### GetMyGroup
+### DeleteMyCode
 
 #### 简要描述：
 
-- [获取我的组织]
+- [删除一个监听]
 
 #### 请求URL:
 
-- http://localhost:8082/shares/api/v1/shares.get_my_group
+- http://localhost:8082/shares/api/v1/shares.delete_my_code
 
 #### 请求方式：
 
@@ -696,7 +690,7 @@
 
 #### 请求参数:
 
-- ` CodeReq ` : 
+- ` DeleteMyCodeReq ` : 
 
 |参数名|是否必须|类型|说明|
 |:----    |:---|:----- |-----   |
@@ -712,46 +706,33 @@
 
 #### 返回参数说明:
 
-- ` GetMyGroupResp ` : 
+- ` Empty ` : 
 
 |参数名|是否必须|类型|说明|
 |:----    |:---|:----- |-----   |
-|`code` | 否|string|股票代码   |
-|`groupName` | 否|string|分组名   |
-|`userName` | 否|string|推荐人   |
-|`wi` | 否|int32|权重   |
-|`group` | 否|[]string|我的股票列表   |
 
 
 #### 返回示例:
 	
 ```
-{
-     "code": "",
-     "group": [
-          ""
-     ],
-     "groupName": "",
-     "userName": "",
-     "wi": 0
-}
+{}
 ```
 
 #### 备注:
 
-- 获取我的组织
+- 删除一个监听
 
 --------------------
 
-### HaveNewMsg
+### GetGroup
 
 #### 简要描述：
 
-- []
+- [获取分组]
 
 #### 请求URL:
 
-- http://localhost:8082/shares/api/v1/shares.have_new_msg
+- http://localhost:8082/shares/api/v1/shares.get_group
 
 #### 请求方式：
 
@@ -772,24 +753,43 @@
 
 #### 返回参数说明:
 
-- ` HaveNewMsgResp ` : 
+- ` GetGroupResp ` : 请求结构
 
 |参数名|是否必须|类型|说明|
 |:----    |:---|:----- |-----   |
-|`badge` | 否|bool|是否有新消息   |
+|`list` | 否|[]`shares.Group`|列表   |
 
 
 #### 返回示例:
 	
 ```
 {
-     "badge": false
+     "list": [
+          {
+               "list": [
+                    {
+                         "attach": "",
+                         "code": "",
+                         "color": "",
+                         "ext": "",
+                         "hy": "",
+                         "img": "",
+                         "name": "",
+                         "peg": "",
+                         "percent": 0,
+                         "price": 0,
+                         "simpleCode": ""
+                    }
+               ],
+               "name": ""
+          }
+     ]
 }
 ```
 
 #### 备注:
 
-- 
+- 获取分组
 
 --------------------
 
@@ -867,27 +867,6 @@
 #### ` shares `
 
 
-- ` SimpleSharesInfo ` : 股票信息
-
-|参数名|是否必须|类型|说明|
-|:----    |:---|:----- |-----   |
-|`code` | 否|string|股票代码   |
-|`price` | 否|float64|当前价格   |
-|`percent` | 否|float64|百分比   |
-|`color` | 否|string|颜色   |
-
-
-
-- ` CodeNameInfo ` : 
-
-|参数名|是否必须|类型|说明|
-|:----    |:---|:----- |-----   |
-|`code` | 否|string|股票代码   |
-|`name` | 否|string|股票名字   |
-|`sName` | 否|string|股票简写   |
-
-
-
 - ` Msg ` : 
 
 |参数名|是否必须|类型|说明|
@@ -903,6 +882,16 @@
 |`color` | 否|string|颜色   |
 |`now` | 否|string|当前时间   |
 |`tag` | 否|string|标记(min,daily)   |
+
+
+
+- ` CodeNameInfo ` : 
+
+|参数名|是否必须|类型|说明|
+|:----    |:---|:----- |-----   |
+|`code` | 否|string|股票代码   |
+|`name` | 否|string|股票名字   |
+|`sName` | 否|string|股票简写   |
 
 
 
@@ -926,6 +915,17 @@
 |`simpleCode` | 否|string|股票代码简写// 返回值用   |
 |`ext` | 否|string|后缀   |
 |`name` | 否|string|股票名字   |
+|`percent` | 否|float64|百分比   |
+|`color` | 否|string|颜色   |
+
+
+
+- ` SimpleSharesInfo ` : 股票信息
+
+|参数名|是否必须|类型|说明|
+|:----    |:---|:----- |-----   |
+|`code` | 否|string|股票代码   |
+|`price` | 否|float64|当前价格   |
 |`percent` | 否|float64|百分比   |
 |`color` | 否|string|颜色   |
 

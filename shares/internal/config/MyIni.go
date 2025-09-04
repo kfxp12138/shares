@@ -6,18 +6,19 @@ import (
 
 // Config custom config struct
 type Config struct {
-	CfgBase     `yaml:"base"`
-	MySQLInfo   MysqlDbInfo `yaml:"db_info"`
-	EtcdInfo    EtcdInfo    `yaml:"etcd_info"`
-	RedisDbInfo RedisDbInfo `yaml:"redis_info"`
-	Oauth2Url   string      `yaml:"oauth2_url"`
-	Port        string      `yaml:"port"` // 端口号
-	WxInfo      WxInfo      `yaml:"wx_info"`
-	FileHost    string      `yaml:"file_host"`
-	MaxCapacity int         `yaml:"max_capacity"` // 最大容量
-	DefGroup    string      `yaml:"def_group"`    // 默认分组
-	Ext         []string    `yaml:"ext"`
-	ToolsType   int         `yaml:"tools_type"`
+    CfgBase     `yaml:"base"`
+    MySQLInfo   MysqlDbInfo `yaml:"db_info"`
+    EtcdInfo    EtcdInfo    `yaml:"etcd_info"`
+    RedisDbInfo RedisDbInfo `yaml:"redis_info"`
+    Oauth2Url   string      `yaml:"oauth2_url"`
+    Port        string      `yaml:"port"` // 端口号
+    WxInfo      WxInfo      `yaml:"wx_info"`
+    FileHost    string      `yaml:"file_host"`
+    MaxCapacity int         `yaml:"max_capacity"` // 最大容量
+    DefGroup    string      `yaml:"def_group"`    // 默认分组
+    Ext         []string    `yaml:"ext"`
+    ToolsType   int         `yaml:"tools_type"`
+    Adata       AdataConfig `yaml:"adata"`
 }
 
 // MysqlDbInfo mysql database information. mysql 数据库信息
@@ -52,6 +53,14 @@ type WxInfo struct {
 	MchID     string `yaml:"mch_id"`     // 商户号
 	NotifyURL string `yaml:"notify_url"` // 通知地址
 	ShearURL  string `yaml:"shear_url"`  // 微信分享url
+}
+
+// AdataConfig 概念（概念/板块）外部数据源配置
+type AdataConfig struct {
+    ConceptsURL string `yaml:"concepts_url"` // 概念映射 JSON 地址（见 VISUAL_API 中两种格式）
+    Python      string   `yaml:"python"`      // Python 解释器（例如 python3）
+    Script      string   `yaml:"script"`      // 生成概念 JSON 的脚本路径
+    Args        []string `yaml:"args"`        // 脚本参数（可选）
 }
 
 // GetWxInfo 获取微信配置
@@ -124,9 +133,21 @@ func GetDefGroup() string {
 }
 
 func GetExt() []string {
-	return _map.Ext
+    return _map.Ext
 }
 
 func GetIsTools() int {
-	return _map.ToolsType
+    return _map.ToolsType
 }
+
+// GetAdataConceptsURL 获取 adata 概念映射 URL
+func GetAdataConceptsURL() string {
+    return _map.Adata.ConceptsURL
+}
+
+// GetAdataPython 返回 python 配置
+func GetAdataPython() string { return _map.Adata.Python }
+// GetAdataScript 返回脚本路径
+func GetAdataScript() string { return _map.Adata.Script }
+// GetAdataArgs 返回脚本参数
+func GetAdataArgs() []string { return _map.Adata.Args }

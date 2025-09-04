@@ -39,6 +39,7 @@
         <div class="row"><textarea id="jsonBox" placeholder='{"concepts":[{"name":"人工智能","codes":["sh600000","sz000001"]}]}'></textarea></div>
         <div class="row">
           <button onclick="importJson()">导入 JSON（正文）</button>
+          <button onclick="loadFromDB()">从当前数据库生成 JSON</button>
           <span id="jsonStatus" class="muted"></span>
         </div>
         <div class="row muted">或从文件读取：<input type="file" id="fileInput" accept=".json" /> <button onclick="readFile()">读取到文本框</button></div>
@@ -49,6 +50,8 @@
         <div class="row"><input id="urlInput" type="text" placeholder="https://your-host/adata.json" /></div>
         <div class="row">
           <button onclick="importUrl()">从 URL 导入</button>
+          <button onclick="refreshFromConfig()">按配置 URL 刷新</button>
+          <button onclick="refreshByPython()">一键 Python 导入（仅开发）</button>
           <span id="urlStatus" class="muted"></span>
         </div>
         <div class="row tips muted">说明：服务端会拉取该 URL 内容作为 JSON 导入（需允许被后端访问）。</div>
@@ -111,7 +114,28 @@
         st.textContent = r.ok? '别名导入成功' : ('别名导入失败: '+(d.err||JSON.stringify(d)));
       }catch(e){ st.className='err'; st.textContent='别名导入失败: '+e.message; }
     }
+    async function loadFromDB(){
+      const st = document.getElementById('jsonStatus'); st.className='muted'; st.textContent='';
+      try{ const r = await fetch('/shares/api/v1/analy.export_concepts'); const t = await r.text(); document.getElementById('jsonBox').value = t; st.className='ok'; st.textContent='已从数据库生成 JSON，请点击“导入 JSON”'; }catch(e){ st.className='err'; st.textContent='生成失败: '+e.message; }
+    }
+    async function refreshFromConfig(){
+      const st = document.getElementById('urlStatus'); st.className='muted'; st.textContent='';
+      try{
+        const r = await fetch('/shares/api/v1/analy.refresh_concepts_now', { method:'POST' });
+        const d = await r.json();
+        st.className = r.ok? 'ok':'err';
+        st.textContent = r.ok? ('已按配置刷新: '+(d.url||'')) : ('刷新失败: '+(d.err||JSON.stringify(d)));
+      }catch(e){ st.className='err'; st.textContent='刷新失败: '+e.message; }
+    }
+    async function refreshByPython(){
+      const st = document.getElementById('urlStatus'); st.className='muted'; st.textContent='';
+      try{
+        const r = await fetch('/shares/api/v1/analy.refresh_concepts_py', { method:'POST' });
+        const d = await r.json();
+        st.className = r.ok? 'ok':'err';
+        st.textContent = r.ok? '已通过 Python 导入' : ('Python 导入失败: '+(d.err||JSON.stringify(d)));
+      }catch(e){ st.className='err'; st.textContent='Python 导入失败: '+e.message; }
+    }
   </script>
 </body>
 </html>
-

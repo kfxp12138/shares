@@ -81,12 +81,16 @@ func InitObj(router gin.IRoutes, objs ...interface{}) {
 	base.RegisterHandlerFunc(router, []string{"post", "get"}, "/analy.dev_login", analy.DevLogin)
 	// 概念刷新/查询
 	base.RegisterHandlerFunc(router, []string{"post"}, "/analy.refresh_concepts", analy.RefreshConcepts)
+	base.RegisterHandlerFunc(router, []string{"post", "get"}, "/analy.refresh_concepts_now", analy.RefreshConceptsNow)
 	base.RegisterHandlerFunc(router, []string{"get", "post"}, "/analy.concepts_by_code", analy.ConceptsByCode)
 	base.RegisterHandlerFunc(router, []string{"get"}, "/analy.search_concepts", analy.SearchConcepts)
 	base.RegisterHandlerFunc(router, []string{"post"}, "/analy.upset_concept_alias", analy.UpsetConceptAlias)
 	base.RegisterHandlerFunc(router, []string{"get", "post"}, "/analy.concepts_detail_by_code", analy.ConceptsDetailByCode)
 	base.RegisterHandlerFunc(router, []string{"get"}, "/analy.concepts_overview", analy.ConceptsOverview)
 	base.RegisterHandlerFunc(router, []string{"get"}, "/analy.concept_stocks", analy.ConceptStocks)
+	base.RegisterHandlerFunc(router, []string{"get"}, "/analy.export_concepts", analy.ExportConcepts)
+	// 一键调用 Python（仅开发环境）
+	base.RegisterHandlerFunc(router, []string{"get", "post"}, "/analy.refresh_concepts_py", analy.RefreshConceptsByPython)
 	base.RegisterHandlerFunc(router, []string{"get"}, "/analy.top_stocks", analy.TopStocks)
 
 	base.OutDoc(true)
