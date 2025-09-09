@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1,maximum-scale=1, user-scalable=no" />
+  <title>两股K线对比</title>
+  <style>
+    body { margin:0; padding:0; font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+    .wrap { position: fixed; top:0; bottom:0; left:0; right:0; display:flex; flex-direction: column; }
+    .bar { padding:6px 10px; font-size:14px; display:flex; align-items:center; gap:10px; flex-wrap: wrap; border-bottom:1px solid #eee; }
+    .grid { flex:1; display:flex; flex-direction: column; }
+    .pane { flex:1; min-height:0; }
+    #chartA, #chartB { width:100%; height:100%; }
+    a { color:#1677ff; text-decoration:none; }
+    label { color:#666; }
+    input { padding:4px 6px; }
+    button { padding:4px 8px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="bar">
+      <strong>两股K线对比</strong>
+      <label>主A：</label>
+      <input id="codeA" placeholder="如 sh600000" style="width:120px" />
+      <label>对比B：</label>
+      <input id="codeB" placeholder="如 sz000001" style="width:120px" />
+      <label><input type="checkbox" id="only20" /> 仅显示20日线</label>
+      <button id="go">对比</button>
+      <span id="status" style="color:#888"></span>
+      <span style="margin-left:auto"></span>
+      <a id="back" href="#">返回列表</a>
+    </div>
+    <div class="grid">
+      <div class="pane"><div id="chartA"></div></div>
+      <div class="pane"><div id="chartB"></div></div>
+    </div>
+  </div>
+  <script src="js/jquery-3.3.1.min.js"></script>
+  <script src="js/echarts.min.js"></script>
+  <script src="js/km-line.js"></script>
+  <script>
+    function q(k){ const u=new URL(location.href); return u.searchParams.get(k)||'' }
+    function qp(){ return new URL(location.href).searchParams }
+    function withPrefix(code){ const s=String(code||'').trim().toLowerCase(); if(/^((sh|sz|hk|bj)\d{5,6})$/.test(s)) return s; if(/^\d{5,6}$/.test(s)){ if(s.startsWith('60')||s.startsWith('68')||s.startsWith('90')) return 'sh'+s; if(s.startsWith('00')||s.startsWith('20')||s.startsWith('30')) return 'sz'+s; if(['83','87','43','92'].includes(s.slice(0,2))) return 'bj'+s; } return s }
+    function guessLimitRatio(code){ code=String(code||'').toLowerCase(); if(code.startsWith('sz300')||code.startsWith('sh688')) return 0.20; return 0.10 }
+    function computeLimitPoints(code, rows){
+      // rows: [[date, open, close, high, low, vol]]
+      const pts = [];
+      for(let i=1;i<(rows||[]).length;i++){
+        const prevClose = Number(rows[i-1][2]); const close = Number(rows[i][2]);
+        if(prevClose>0){ const pct = (close-prevClose)/prevClose*100; const th = guessLimitRatio(code)*100 - 0.2; if(pct>=th){ pts.push([ String(rows[i][0]), close ]); } }
+      }
+      return pts;
+    }
+    async function loadK(code, domId, only20, tag){
+      return new Promise((resolve)=>{
+        $.ajax({ type:'POST', url:'/shares/api/v1/shares.dayliy', contentType:'application/json;charset=utf-8', data: JSON.stringify({ code }), dataType:'json', success: function(result){
+          const chart = echarts.init(document.getElementById(domId));
+          const opt = initKOption(result.data, only20);
+          // 增加涨停标记（散点叠加在主K图）
+          const pts = computeLimitPoints(code, result.data||[]);
+          const seriesName = tag ? ('涨停'+tag) : '涨停';
+          opt.series = opt.series || [];
+          opt.series.push({
+            name: seriesName,
+            type: 'scatter',
+            symbol: 'circle',
+            symbolSize: 12,
+            z: 10,
+            zlevel: 5,
+            xAxisIndex: 0,
+            yAxisIndex: 0,
+            // 涨停点标记为黄色
+            itemStyle: { color: '#FFD700' },
+            data: pts,
+            tooltip: { formatter: function(p){ return seriesName+': '+p.value[0]; } }
+          });
+          // 追加图例
+          if(opt.legend && opt.legend.data){ opt.legend.data = opt.legend.data.concat([seriesName]); }
+          chart.setOption(opt);
+          resolve();
+        }, error: function(){ resolve(); } });
+      });
+    }
+    async function loadMin(code, domId){
+      return new Promise((resolve)=>{
+        $.ajax({ type:'POST', url:'/shares/api/v1/shares.minute', contentType:'application/json;charset=utf-8', data: JSON.stringify({ code }), dataType:'json', success: function(result){
+          const chart = echarts.init(document.getElementById(domId));
+          const opt = initMOption(result.data, 'hs');
+          chart.setOption(opt);
+          resolve();
+        }, error: function(){ resolve(); } });
+      });
+    }
+    function init(){
+      const rg = q('rg'); if (rg !== 'false') { setColor('#F9293E', '#00aa3b'); }
+      const a = withPrefix(q('codeA')); const b = withPrefix(q('codeB'));
+      const only20 = q('only20')==='true';
+      const tag = q('tag') || 'daily';
+      if(a) document.getElementById('codeA').value = a;
+      if(b) document.getElementById('codeB').value = b;
+      document.getElementById('only20').checked = only20;
+      const back = q('back'); if(back){ document.getElementById('back').href = decodeURIComponent(back); } else { document.getElementById('back').style.display='none' }
+      document.getElementById('go').onclick = ()=>{
+        const na = withPrefix(document.getElementById('codeA').value);
+        const nb = withPrefix(document.getElementById('codeB').value);
+        const o20 = document.getElementById('only20').checked;
+        const u = new URL(location.href);
+        u.searchParams.set('codeA', na); u.searchParams.set('codeB', nb);
+        u.searchParams.set('only20', String(o20));
+        u.searchParams.set('tag', tag);
+        location.href = u.pathname + '?' + u.searchParams.toString();
+      };
+      if(a && b){
+        document.getElementById('status').textContent = '加载中…';
+        const date = q('date') || '';
+        const today = (new Date()).toISOString().slice(0,10);
+        const doDaily = (tag !== 'min') || (date && date !== today);
+        const jobs = doDaily
+          ? [ loadK(a, 'chartA', only20, 'A'), loadK(b, 'chartB', only20, 'B') ]
+          : [ loadMin(a, 'chartA'), loadMin(b, 'chartB') ];
+        Promise.all(jobs).then(()=>{
+          document.getElementById('status').textContent = '';
+          if(doDaily){
+            // 若携带 date 参数，则在两张日K上标注该日期
+            const ds = date;
+            if(ds){
+              try{
+                const ml = { symbol:['none','none'], label:{ show:true, formatter: '选中日' }, lineStyle:{ color:'#333', type:'dashed' }, data:[{ xAxis: ds }] };
+                echarts.getInstanceByDom(document.getElementById('chartA'))?.setOption({ series: [{ markLine: ml }] });
+                echarts.getInstanceByDom(document.getElementById('chartB'))?.setOption({ series: [{ markLine: ml }] });
+              }catch(e){}
+            }
+            if(tag==='min' && date && date!==today){ document.getElementById('status').textContent = '提示：分时仅支持当日，已回退为日K对比。'; }
+          }
+        });
+      }
+    }
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>

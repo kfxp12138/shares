@@ -35,6 +35,49 @@
   - 示例：`http://localhost:8082/shares/echarts/watchlist.html`
   - 代码参考：`shares/shares/echarts/watchlist.html`
 
+- 页面：`/shares/echarts/limitup_calendar.html`
+  - 说明：输入一只股票，聚合其“同概念”成分股，按交易日历显示每日达标数量；支持口径切换：大涨（≥阈值%）或涨停（10%/20%/ST 5%）。点击某一天可进入当日明细。
+  - 参数：
+    - `code`（如 `sh600000`）
+    - `limit` 每个概念纳入的前 N 只（默认 60）
+    - `days` 最近交易日个数（默认 22，约一个月）
+    - `mode` 统计口径：`bigrise|limitup`（默认 `bigrise`）
+    - `thType` 阈值类型：`rel|abs`（默认 `rel` 相对涨停）
+    - `minRate` 相对阈值（0~1，默认 `0.7`，表示 ≥ 涨停幅度的 70%）
+    - `minPct` 绝对阈值（单位 %，默认 7；当 `thType=abs` 时使用）
+    - `concepts` 可多值或逗号分隔，仅统计选中概念
+  - 示例：
+    - 大涨（月视图，相对阈值 70%）：`http://localhost:8082/shares/echarts/limitup_calendar.html?code=sh600000&mode=bigrise&thType=rel&minRate=0.7&days=22`
+    - 大涨（绝对阈值 8%）：`http://localhost:8082/shares/echarts/limitup_calendar.html?code=sh600000&mode=bigrise&thType=abs&minPct=8&days=22`
+    - 指定概念：`http://localhost:8082/shares/echarts/limitup_calendar.html?code=sh600000&concepts=人工智能&concepts=CPO&mode=bigrise&thType=rel&minRate=0.7`
+  - 数据源：后端聚合 `/analy.same_concept_limitup_calendar`（兼容上述参数）
+  - 代码参考：`shares/shares/echarts/limitup_calendar.html`
+
+- 页面：`/shares/echarts/limitup_day.html`
+  - 说明：指定日期展示与主股票“同概念”的达标（大涨/涨停）股票列表；若为“今天”且口径为“涨停”，额外估算首封时间。包含“对比”区，基于 `/analy.compare_concepts` 与主股票概念做重叠分析。
+  - 参数：
+    - `code`（主股票，必填），`date`（YYYY-MM-DD，默认今天）
+    - `mode`（`bigrise|limitup`，默认 `bigrise`）、`minPct`（仅在 `bigrise` 下生效，默认 7）
+    - `concepts`（同上：筛选参与统计的概念）
+  - 示例：`http://localhost:8082/shares/echarts/limitup_day.html?code=sh600000&date=2025-08-20&mode=bigrise&minPct=7`
+  - 数据源：后端聚合 `/analy.same_concept_limitup_day`（兼容上述参数）
+  - 代码参考：`shares/shares/echarts/limitup_day.html`
+
+## 2.1) 新增后端聚合接口
+
+- GET/POST `/shares/api/v1/analy.same_concept_limitup_calendar`
+  - 入参：`code`、`days`（默认 22）、`perConcept`（默认 60）、`concepts`，以及 `mode`（`bigrise|limitup`）、`thType`、`minRate`、`minPct`
+  - 返回：`{ code, concepts: [string], codes: int, items: [ { date, count, mainUp } ] }`
+  - 说明：按主股票概念收集成分股，按近 N 个交易日统计达标数量；大涨模式支持两种阈值：
+    - 相对阈值：≥ 各自涨停幅度的 `minRate`（例如主板 10%→7%，创业板/科创板 20%→14%，ST 5%→3.5%）
+    - 绝对阈值：≥ `minPct%`
+    涨停模式按 10%/20%/ST 5% 判断；同时返回当日主股票是否也达标（`mainUp`）。
+
+- GET/POST `/shares/api/v1/analy.same_concept_limitup_day`
+  - 入参：在原有基础上，支持 `mode`（`bigrise|limitup`）、`thType`、`minRate`、`minPct`。
+  - 返回：`{ code, date, items: [ { code,name,percent,firstSeal } ] }`（大涨模式不返回 `firstSeal`）
+  - 说明：返回指定日期所有“同概念达标”（大涨/涨停）的股票；当天且为涨停模式时估算分钟级“首封时间”。
+
 ## 2) 数据 API（页面数据源）
 
 - POST `/shares/api/v1/shares.dayliy`（日K数据）
@@ -174,7 +217,33 @@
 - 手动：打开导入页面 `/shares/echarts/import_concepts.html` 粘贴 JSON 或提供 URL；或直接调用 `POST /shares/api/v1/analy.refresh_concepts?source=adata`。
 - 立即：`GET/POST /shares/api/v1/analy.refresh_concepts_now` 按配置 URL 立即刷新。
 
-## 8) 快速访问示例
+## 8) 概念重叠分析（A vs B）
+
+- 页面：`/shares/echarts/compare_concepts.html`
+  - 说明：输入两组股票 A（参考）与 B（目标），按 B 与 A 概念重叠数量降序排序，并列出重叠概念。
+  - 行为：页面并发调用后端接口获取概念与名称，无需登录。
+
+- 后端接口：
+  - POST `/shares/api/v1/analy.compare_concepts`
+    - 入参（JSON 或表单）：`{ "codesA": ["sh600000"], "codesB": ["sz000001"], "onlyOverlap": true }`
+      - 也支持字符串：`codesA="sh600000, sz000001"`（逗号/空白分隔）
+    - 加权排序：按 `weighted`（重叠概念在 A 中频次求和）降序，其次 `overlap` 降序
+    - 返回：
+      ```json
+      {
+        "rows": [
+          { "code": "sh600036", "name": "招商银行", "overlap": 3, "weighted": 7,
+            "concepts": ["银行", "金融科技", "MSCI中国"],
+            "conceptsDetail": [ {"name":"银行","count":4}, {"name":"金融科技","count":2}, {"name":"MSCI中国","count":1} ]
+          }
+        ],
+        "conceptsA": [ { "name": "银行", "count": 4 }, ... ]
+      }
+      ```
+  - POST `/shares/api/v1/analy.compare_concepts_export`
+    - 入参同上，返回 CSV（`code,name,overlap,weighted,concepts_with_weight`），`Content-Disposition: attachment`。
+
+## 9) 快速访问示例
 
 日K图: http://localhost:8082/shares/echarts/echarts.html?tag=daily&code=sh600000
 分时图: http://localhost:8082/shares/echarts/echarts.html?tag=min&code=sh600000
@@ -185,4 +254,9 @@
 一键登录（开发）
 
 直接打开: http://localhost:8082/shares/api/v1/analy.dev_login?openid=dev_openid&nick=%E5%BC%80%E5%8F%91%E8%80%85
+
+http://localhost:8082/shares/echarts/compare_concepts.html
 或在 myboard 页面点击“一键登录（开发）”
+
+
+http://localhost:8082/shares/echarts/limitup_calendar.html?code=sh600000&concepts=人工智能&concepts=CPO

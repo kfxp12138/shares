@@ -144,6 +144,7 @@ sudo ./shares run
   - 示例：`http://localhost:8082/shares/echarts/watchlist.html`
 - 小程序：`shares/shares/uniapp/*`（在 `utils/server/*.js` 中配置服务地址）
 - Web Demo：`shares/element/webpack/*`
+ - 概念重叠分析：`shares/shares/echarts/compare_concepts.html`（依赖接口 `/shares/api/v1/analy.compare_concepts` / `..._export`）
 
 ## 十、监控与健康
 

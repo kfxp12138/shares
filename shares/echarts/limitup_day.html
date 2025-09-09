@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>同概念大涨/涨停明细</title>
+  <style>
+    body { margin:0; font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 14px; }
+    h2, h3 { margin: 8px 0; }
+    .muted { color:#888; font-size:12px; }
+    .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:8px 0; }
+    input, button { padding:6px 8px; font-size:14px; }
+    .chips .chip { display:inline-block; padding:3px 6px; margin:2px 4px 2px 0; background:#f2f2f2; border-radius:3px; font-size:12px; }
+    table { width:100%; border-collapse: collapse; font-size:14px; }
+    th, td { padding:6px 8px; border-bottom:1px solid #eee; text-align:left; }
+    th { position:sticky; top:0; background:#fafafa; z-index:1; }
+    .pos { color:#e54d42; }
+    .neg { color:#39b54a; }
+    a { color:#1677ff; text-decoration:none; }
+  </style>
+  <script>
+    function q(k){ const u=new URL(location.href); return u.searchParams.get(k)||'' }
+    function todayStr(){ const d=new Date(); const y=d.getFullYear(); const m=('0'+(d.getMonth()+1)).slice(-2); const dd=('0'+d.getDate()).slice(-2); return `${y}-${m}-${dd}` }
+    function fmt2(n){ return (n||0).toFixed(2) }
+    function withPrefix(code){ const s=String(code||'').trim().toLowerCase(); if(/^((sh|sz|hk|bj)\d{5,6})$/.test(s)) return s; if(/^\d{5,6}$/.test(s)){ if(s.startsWith('60')||s.startsWith('68')||s.startsWith('90')) return 'sh'+s; if(s.startsWith('00')||s.startsWith('20')||s.startsWith('30')) return 'sz'+s; if(['83','87','43','92'].includes(s.slice(0,2))) return 'bj'+s; } return s }
+    function guessLimitRatio(code){ code = String(code||'').toLowerCase(); if(code.startsWith('sz300')||code.startsWith('sh688')) return 0.20; return 0.10 }
+    async function fetchJSON(url, opt){ const r = await fetch(url, opt); if(!r.ok) throw new Error('HTTP '+r.status); return r.json() }
+    async function getConceptsByCode(code){ try{ const d = await fetchJSON('/shares/api/v1/analy.concepts_by_code?code='+encodeURIComponent(code)); return (d.concepts||[]).map(x=>String(x).trim()).filter(Boolean); }catch(e){ return [] } }
+    async function getConceptStocks(concept, limit){ try{ const d = await fetchJSON('/shares/api/v1/analy.concept_stocks?name='+encodeURIComponent(concept)+(limit?('&limit='+limit):'')); return (d.list||[]).map(it=>({ code: it.code, name: it.name })); }catch(e){ return [] } }
+    async function getDayliy(code){ const r = await fetch('/shares/api/v1/shares.dayliy', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ code }) }); if(!r.ok) return []; return r.json(); }
+    async function getMinute(code){ const r = await fetch('/shares/api/v1/shares.minute', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ code }) }); if(!r.ok) return null; return r.json(); }
+    async function pickCodes(codes){ const r = await fetch('/shares/api/v1/analy.pick_codes', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ codes, limit: Math.max(1000, codes.length) }) }); if(!r.ok) return {list:[]}; return r.json(); }
+    function computePercentOnDate(k, date){ // k: [[date,open,close,high,low,vol]...]
+      for(let i=1;i<k.length;i++){ const d=String(k[i][0]); if(d===date){ const prevClose = Number(k[i-1][2]); const close = Number(k[i][2]); if(prevClose>0){ return (close-prevClose)/prevClose*100 } else { return null } } }
+      return null;
+    }
+    function firstSealFromMinute(code, minute){ if(!minute||!minute.data||!minute.yestclose) return ''; const pre = Number(minute.yestclose)||0; if(pre<=0) return ''; const lim = pre*(1+guessLimitRatio(code)); for(const it of minute.data){ const t = it[0]; const price = Number(it[1]); if(price>=lim-1e-6) return String(t) } return '' }
+    function parseList(s){ return Array.from(new Set(String(s||'').split(/[\s,，、;；|\n\r]+/).map(x=>x.trim()).filter(Boolean))) }
+
+    async function main(){
+      const code = withPrefix(q('code')||''); const date = q('date')||todayStr();
+      const mode = (q('mode')||'bigrise'); const thType = (q('thType')||'rel'); const minRate = Number(q('minRate')||0.7)||0.7; const minPct = Number(q('minPct')||7)||7;
+      if(!code){ alert('缺少参数 code'); return }
+      const modeName = mode==='bigrise' ? (thType==='rel' ? `大涨(≥涨停幅度的 ${Math.round(minRate*100)}%)` : `大涨(≥${minPct}%)`) : '涨停';
+      document.getElementById('title').textContent = `同概念${modeName}明细 - ${code} - ${date}`;
+      const backLink = new URL(location.origin+`/shares/echarts/limitup_calendar.html`);
+      backLink.searchParams.set('code', code); backLink.searchParams.set('mode', mode); backLink.searchParams.set('thType', thType); backLink.searchParams.set('minRate', String(minRate)); backLink.searchParams.set('minPct', String(minPct)); backLink.searchParams.set('days', String(q('days')||'22'));
+      document.getElementById('toCalendar').href = backLink.pathname+'?'+backLink.searchParams.toString();
+
+      // load stock basic and concepts
+      const sp = await fetchJSON('/shares/api/v1/shares.search_plus', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ code, tag:'daily' }) });
+      if(sp && sp.info){ document.getElementById('stock').textContent = `${sp.info.code} ${sp.info.name} (${fmt2(sp.info.percent)}%)`; }
+      const concepts = sp.concepts || []; document.getElementById('concepts').innerHTML = concepts.map(n=>`<span class="chip">${n}</span>`).join('');
+
+      // unify codes
+      const set = new Map();
+      for(const cpt of concepts){ const lst = await getConceptStocks(cpt, 80); for(const it of lst){ if(it.code && it.code!==code){ set.set(it.code, it.name) } } }
+      const codes = Array.from(set.keys());
+      document.getElementById('status').textContent = `同概念候选 ${codes.length} 只，筛选${mode==='bigrise'?(thType==='rel'?('大涨(≥涨停幅度的 '+Math.round(minRate*100)+'%)'):('大涨(≥'+minPct+'%)')):'涨停'}中…`;
+
+      const today = todayStr();
+      const upList = [];
+      if(date === today){
+        // use realtime percent + minute to compute first seal
+        const d = await pickCodes(codes);
+        const rows = d.list||[];
+        const mp = {}; rows.forEach(it=>{ mp[it.code] = it });
+        for(const c of codes){
+          const r = mp[c]; if(!r) continue;
+          let ratio = guessLimitRatio(c);
+          const conceptsStr = (r.concepts||'').toUpperCase();
+          if(conceptsStr.includes('ST')) ratio = 0.05; // 兼容 ST 5%
+          const limPct = ratio*100 - 0.2;
+          if((r.percent||0) >= limPct){
+            // candidate: pull minute and compute first seal
+            try{
+              const m = await getMinute(c);
+              const fs = firstSealFromMinute(c, m);
+              if(fs){ upList.push({ code:c, name: set.get(c)||'', percent: r.percent||0, firstSeal: fs }) }
+            }catch(e){}
+          }
+        }
+      } else {
+        // check by dayliy percent on the date
+        const concurrency = 6; let idx=0;
+        async function one(){
+          if(idx>=codes.length) return; const c = codes[idx++];
+          try{
+            const k = await getDayliy(c);
+            const pct = computePercentOnDate(k, date);
+            if(pct!=null){
+              const passed = (mode==='bigrise') ? (pct >= minPct - 0.2) : (pct >= guessLimitRatio(c)*100 - 0.2);
+              if(passed){ upList.push({ code:c, name:set.get(c)||'', percent: pct, firstSeal: '' }) }
+            }
+          }catch(e){}
+          if(idx<codes.length) return one();
+        }
+        await Promise.all(Array.from({length:Math.min(concurrency,codes.length)}, one));
+      }
+
+      // render table
+      upList.sort((a,b)=>{
+        if(date===today){ if(a.firstSeal && b.firstSeal){ return a.firstSeal<b.firstSeal?-1:1 } if(a.firstSeal) return -1; if(b.firstSeal) return 1; }
+        return (b.percent||0) - (a.percent||0);
+      });
+      const tb = document.querySelector('#tbl tbody'); tb.innerHTML='';
+      for(const it of upList){
+        const tr=document.createElement('tr');
+        const link = `/shares/echarts/echarts.html?tag=${date===today?'min':'daily'}&code=${encodeURIComponent(it.code)}`;
+        tr.innerHTML = `
+          <td><a href="${link}" target="_blank">${it.code}</a></td>
+          <td>${it.name||''}</td>
+          <td class="pos">${fmt2(it.percent)}%</td>
+          <td>${it.firstSeal||'-'}</td>
+        `;
+        tb.appendChild(tr);
+      }
+      document.getElementById('status').textContent = `共 ${upList.length} 只同概念涨停${date===today?'（含首封时间）':''}`;
+
+      // compare section (A vs B)
+      if(upList.length>0){
+        try{
+          const resp = await fetch('/shares/api/v1/analy.compare_concepts', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ codesA:[code], codesB: upList.map(x=>x.code), onlyOverlap:true }) });
+          const d = await resp.json();
+          if(resp.ok && d && d.rows){
+            const tb2 = document.querySelector('#tblCmp tbody'); tb2.innerHTML='';
+            for(const r of d.rows){
+              const chips = (r.conceptsDetail||[]).map(o=>`<span class="chip">${o.name}(${o.count})</span>`).join(' ');
+              const link2 = `/shares/echarts/echarts.html?tag=daily&code=${encodeURIComponent(r.code)}`;
+              const tr=document.createElement('tr');
+              tr.innerHTML = `
+                <td><a href="${link2}" target="_blank">${r.code}</a></td>
+                <td>${r.name||''}</td>
+                <td>${r.weighted||0}</td>
+                <td>${r.overlap||0}</td>
+                <td>${chips}</td>
+              `;
+              tb2.appendChild(tr);
+            }
+            document.getElementById('cmpWrap').style.display='' ;
+          }
+        }catch(e){}
+      }
+    }
+    // 后端聚合版本，替换默认 main
+    async function main_server(){
+      const code = withPrefix(q('code')||''); const date = q('date')||todayStr();
+      const mode = (q('mode')||'bigrise'); const thType = (q('thType')||'rel'); const minRate = Number(q('minRate')||0.7)||0.7; const minPct = Number(q('minPct')||7)||7;
+      if(!code){ alert('缺少参数 code'); return }
+      const modeName = mode==='bigrise' ? (thType==='rel' ? `大涨(≥涨停幅度的 ${Math.round(minRate*100)}%)` : `大涨(≥${minPct}%)`) : '涨停';
+      document.getElementById('title').textContent = `同概念${modeName}明细 - ${code} - ${date}`;
+      // 保留概念筛选回传
+      const selected = [];
+      const u0 = new URL(location.href); u0.searchParams.forEach((v,k)=>{ if(k==='concepts'){ selected.push(v) } });
+      if(selected.length){ document.getElementById('concepts').innerHTML = selected.map(n=>`<span class="chip">${n}</span>`).join(''); }
+      const back = new URL(location.origin+`/shares/echarts/limitup_calendar.html`);
+      back.searchParams.set('code', code); back.searchParams.set('mode', mode); back.searchParams.set('thType', thType); back.searchParams.set('minRate', String(minRate)); back.searchParams.set('minPct', String(minPct)); back.searchParams.set('days', String(q('days')||'22'));
+      selected.forEach(v=>back.searchParams.append('concepts', v));
+      document.getElementById('toCalendar').href = back.pathname+'?'+back.searchParams.toString();
+      document.getElementById('status').textContent = '服务端计算中…';
+      const qp = new URLSearchParams();
+      qp.set('code', code); qp.set('date', date); qp.set('mode', mode); qp.set('thType', thType); qp.set('minRate', String(minRate)); qp.set('minPct', String(minPct));
+      selected.forEach(v=>qp.append('concepts', v));
+      const resp = await fetch(`/shares/api/v1/analy.same_concept_limitup_day?${qp.toString()}`);
+      const d = await resp.json();
+      if(!resp.ok){ document.getElementById('status').textContent = '失败'; return }
+      const upList = d.items||[];
+      const tb = document.querySelector('#tbl tbody'); tb.innerHTML='';
+      const backURL = encodeURIComponent(location.href);
+      for(const it of upList){
+        const tr=document.createElement('tr');
+        const link = `/shares/echarts/compare_k.html?tag=min&codeA=${encodeURIComponent(code)}&codeB=${encodeURIComponent(it.code)}&only20=false&date=${encodeURIComponent(date)}&back=${backURL}`;
+        tr.innerHTML = `
+          <td><a href="${link}" target="_blank">${it.code}</a></td>
+          <td>${it.name||''}</td>
+          <td class="pos">${fmt2(it.percent)}%</td>
+          <td>${it.firstSeal||'-'}</td>
+        `;
+        tb.appendChild(tr);
+      }
+      document.getElementById('status').textContent = `共 ${upList.length} 只同概念${mode==='bigrise'?'大涨':'涨停'}${(date===todayStr() && mode!=='bigrise')?'（含首封时间）':''}`;
+
+      if(upList.length>0){
+        try{
+          const resp2 = await fetch('/shares/api/v1/analy.compare_concepts', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ codesA:[code], codesB: upList.map(x=>x.code), onlyOverlap:true }) });
+          const d2 = await resp2.json();
+          if(resp2.ok && d2 && d2.rows){
+            const tb2 = document.querySelector('#tblCmp tbody'); tb2.innerHTML='';
+            for(const r of d2.rows){
+              const chips = (r.conceptsDetail||[]).map(o=>`<span class="chip">${o.name}(${o.count})</span>`).join(' ');
+              const link2 = `/shares/echarts/compare_k.html?tag=min&codeA=${encodeURIComponent(code)}&codeB=${encodeURIComponent(r.code)}&only20=false&date=${encodeURIComponent(date)}&back=${backURL}`;
+              const tr=document.createElement('tr');
+              tr.innerHTML = `
+                <td><a href="${link2}" target="_blank">${r.code}</a></td>
+                <td>${r.name||''}</td>
+                <td>${r.weighted||0}</td>
+                <td>${r.overlap||0}</td>
+                <td>${chips}</td>
+              `;
+              tb2.appendChild(tr);
+            }
+            document.getElementById('cmpWrap').style.display='';
+          }
+        }catch(e){}
+      }
+    }
+    document.addEventListener('DOMContentLoaded', main_server);
+  </script>
+</head>
+<body>
+  <div class="wrap">
+    <h2 id="title">同概念涨停明细</h2>
+    <div class="row">
+      <a id="toCalendar" href="#">返回日历</a>
+      <span id="stock" style="font-weight:600"></span>
+      <span id="status" class="muted"></span>
+    </div>
+    <div class="row chips" id="concepts"></div>
+
+    <h3>当日同概念涨停列表</h3>
+    <table id="tbl">
+      <thead>
+        <tr>
+          <th style="width:18%">代码</th>
+          <th style="width:20%">名称</th>
+          <th style="width:12%">涨幅</th>
+          <th style="width:12%">首封时间</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <div id="cmpWrap" style="display:none; margin-top:16px;">
+      <h3>与主股票概念对比（A=主，B=当日涨停）</h3>
+      <div class="muted">基于 /analy.compare_concepts 计算重叠概念，按加权降序。</div>
+      <table id="tblCmp">
+        <thead>
+          <tr>
+            <th style="width:18%">代码</th>
+            <th style="width:20%">名称</th>
+            <th style="width:12%">加权</th>
+            <th style="width:12%">重叠数</th>
+            <th>重叠概念</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+  <style>.chip{display:inline-block;padding:3px 6px;margin:2px 4px;background:#f2f2f2;border-radius:3px;font-size:12px;}</style>
+</body>
+<html>

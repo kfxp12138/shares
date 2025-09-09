@@ -48,9 +48,10 @@
 					return;
 				}
 				var rg = getQueryVariable("rg");
-				if (rg === "true") { //设置涨跌颜色
-					setColor("#F9293E", "#00aa3b");
-				}
+					// 默认：涨红(#F9293E)、跌绿(#00aa3b)。当 rg=false 时不改动（兼容旧习惯）。
+					if (rg !== "false") {
+						setColor("#F9293E", "#00aa3b");
+					}
 				var only20 = (getQueryVariable("only20") === "true")
 
 				var tag = getQueryVariable("tag"); // 判断日线还是分时线

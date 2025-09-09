@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>同概念大涨/涨停日历</title>
+  <style>
+    body { margin:0; font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 14px; }
+    h2, h3 { margin: 8px 0; }
+    .muted { color:#888; font-size:12px; }
+    .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:8px 0; }
+    input, select, button { padding:6px 8px; font-size:14px; }
+    #concepts .chip { display:inline-block; padding:3px 6px; margin:2px 4px 2px 0; background:#f2f2f2; border-radius:3px; font-size:12px; cursor:pointer; }
+    #concepts .chip.sel { background:#ffe3d9; border:1px solid #ffae99; }
+    .calendar { display:grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 8px; }
+    .cell { border:1px solid #eee; border-radius:6px; min-height:76px; padding:6px; position:relative; background:#fff; }
+    .cell .date { position:absolute; top:6px; right:8px; color:#999; font-size:12px; }
+    .cell .cnt { font-size:22px; font-weight:600; margin-top: 18px; }
+    .cell .cnt.badge { color:#e54d42; }
+    .cell .cnt.zero { color:#bbb; font-weight:400; }
+    .cell .detail { font-size:12px; color:#666; margin-top:4px; line-height: 1.4; }
+    .legend { display:flex; align-items:center; gap:10px; margin-top:6px; }
+    .legend .dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
+    .dot0 { background:#eaeaea; }
+    .dot1 { background:#ffd6cc; }
+    .dot2 { background:#ffb399; }
+    .dot3 { background:#ff8c66; }
+    .dot4 { background:#ff704d; }
+    .dot5 { background:#ff5733; }
+    .tools { margin-top:8px; }
+    a { color:#1677ff; text-decoration:none; }
+    .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+    @media (max-width:920px){ .grid2{ grid-template-columns: 1fr; } }
+    /* 主股同日大涨/涨停标记 */
+    .mark { position:absolute; top:6px; left:8px; width:8px; height:8px; border-radius:50%; background:#16a34a; box-shadow:0 0 0 1px #fff inset; }
+  </style>
+  <script>
+    function q(k){ const u=new URL(location.href); return u.searchParams.get(k)||'' }
+    function setQuery(qs){ history.replaceState(null, '', qs) }
+    function getQueryAll(name){
+      const u=new URL(location.href); const out=[]; u.searchParams.forEach((v,k)=>{ if(k===name){ out.push(v) } }); return out;
+    }
+    function fmt(n){ return (n||0).toFixed(2) }
+    function todayStr(){ const d=new Date(); const y=d.getFullYear(); const m=('0'+(d.getMonth()+1)).slice(-2); const dd=('0'+d.getDate()).slice(-2); return `${y}-${m}-${dd}` }
+    function guessLimitRatio(code){ code = String(code||'').toLowerCase(); if(code.startsWith('sz300')||code.startsWith('sh688')) return 0.20; return 0.10 }
+    function parseList(s){ return Array.from(new Set(String(s||'').split(/[\s,，、;；|\n\r]+/).map(x=>x.trim()).filter(Boolean))) }
+    function withPrefix(code){ const s=String(code||'').trim().toLowerCase(); if(/^((sh|sz|hk|bj)\d{5,6})$/.test(s)) return s; if(/^\d{5,6}$/.test(s)){ if(s.startsWith('60')||s.startsWith('68')||s.startsWith('90')) return 'sh'+s; if(s.startsWith('00')||s.startsWith('20')||s.startsWith('30')) return 'sz'+s; if(['83','87','43','92'].includes(s.slice(0,2))) return 'bj'+s; } return s }
+
+    async function fetchJSON(url, opt){ const r = await fetch(url, opt); if(!r.ok){ throw new Error('HTTP '+r.status) } return r.json() }
+    async function getConceptsByCode(code){
+      try{
+        const d = await fetchJSON('/shares/api/v1/analy.concepts_by_code?code='+encodeURIComponent(code));
+        return (d.concepts||[]).map(x=>String(x).trim()).filter(Boolean);
+      }catch(e){ return [] }
+    }
+    async function getConceptStocks(concept, limit){
+      try{
+        const d = await fetchJSON('/shares/api/v1/analy.concept_stocks?name='+encodeURIComponent(concept)+(limit?('&limit='+limit):''));
+        return (d.list||[]).map(it=>({ code: it.code, name: it.name }));
+      }catch(e){ return [] }
+    }
+    async function getDayliy(code){
+      const r = await fetch('/shares/api/v1/shares.dayliy', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ code }) });
+      if(!r.ok){ return [] }
+      return r.json(); // [[date, open, close, high, low, vol], ...]
+    }
+    function buildTradingDates(kdata, maxDays){
+      const dates = (kdata||[]).map(it=>String(it[0]));
+      if(maxDays && dates.length>maxDays) return dates.slice(-maxDays);
+      return dates;
+    }
+    function computeLimitDays(code, kdata){
+      const lim = guessLimitRatio(code);
+      const out = new Set();
+      for(let i=1;i<kdata.length;i++){
+        const prevClose = Number(kdata[i-1][2]);
+        const close = Number(kdata[i][2]);
+        if(prevClose>0){ const pct = (close - prevClose)/prevClose*100; if(pct >= lim*100 - 0.2){ out.add(String(kdata[i][0])) } }
+      }
+      return out; // set of 'YYYY-MM-DD'
+    }
+
+    let gSelectedConcepts = [];
+    function renderCalendar(dates){
+      const grid = document.getElementById('cal');
+      grid.innerHTML='';
+      // Header for weekdays
+      const weekdays = ['一','二','三','四','五','六','日'];
+      for(const w of weekdays){ const h=document.createElement('div'); h.style.textAlign='center'; h.style.fontSize='12px'; h.style.color='#666'; h.textContent='周'+w; grid.appendChild(h) }
+      // Determine first day offset based on first trading date
+      if(!dates.length){ return }
+      const first = new Date(dates[0]);
+      let offset = first.getDay(); // 0-6, Sunday=0
+      offset = (offset===0?7:offset) - 1; // Monday based
+      for(let i=0;i<offset;i++){ const emp=document.createElement('div'); emp.className='cell'; emp.style.background='#fafafa'; grid.appendChild(emp) }
+      // Add each trading day cell
+      let last = null;
+      for(const ds of dates){
+        // 补齐非交易日（周末/节假日）占位，保证周对齐
+        if(last){
+          const d1 = new Date(last); const d2 = new Date(ds);
+          const gap = Math.round((d2 - d1) / 86400000);
+          if(gap > 1){ // 存在非交易日
+            for(let k=1;k<gap;k++){
+              const emp=document.createElement('div'); emp.className='cell'; emp.style.background='#fafafa'; grid.appendChild(emp)
+            }
+          }
+        }
+        const div = document.createElement('div'); div.className='cell'; div.dataset.date = ds;
+        const d = document.createElement('div'); d.className='date'; d.textContent = ds.slice(5);
+        const cnt = document.createElement('div'); cnt.className='cnt zero'; cnt.textContent='0';
+        const det = document.createElement('div'); det.className='detail'; det.textContent='';
+        div.appendChild(d); div.appendChild(cnt); div.appendChild(det);
+        div.addEventListener('click', ()=>{
+          const code = withPrefix(document.getElementById('code').value);
+          const u = new URL(location.origin+`/shares/echarts/limitup_day.html`);
+          u.searchParams.set('code', code);
+          u.searchParams.set('date', ds);
+          // 透传模式与阈值
+          const mode = (document.getElementById('mode')||{}).value||'bigrise';
+          const thType = (document.getElementById('thType')||{}).value||'rel';
+          const minPct = (document.getElementById('minPct')||{}).value||'7';
+          const minRate = (document.getElementById('minRate')||{}).value||'0.7';
+          u.searchParams.set('mode', mode);
+          u.searchParams.set('thType', thType);
+          u.searchParams.set('minPct', String(minPct));
+          u.searchParams.set('minRate', String(minRate));
+          (gSelectedConcepts||[]).forEach(c=>u.searchParams.append('concepts', c));
+          location.href = u.pathname + '?' + u.searchParams.toString();
+        });
+        grid.appendChild(div);
+        last = ds;
+      }
+    }
+    function tintByCount(n){ if(n>=10) return 'dot5'; if(n>=6) return 'dot4'; if(n>=4) return 'dot3'; if(n>=2) return 'dot2'; if(n>=1) return 'dot1'; return 'dot0' }
+    function updateCell(date, count, mainUp){
+      const cell = document.querySelector(`.cell[data-date="${date}"]`); if(!cell) return;
+      const cnt = cell.querySelector('.cnt'); cnt.textContent = String(count);
+      cnt.classList.remove('zero'); cnt.classList.add('badge');
+      cell.style.boxShadow = 'inset 0 0 0 9999px ' + ({
+        dot0:'#eaeaea', dot1:'#ffd6cc', dot2:'#ffb399', dot3:'#ff8c66', dot4:'#ff704d', dot5:'#ff5733'
+      })[tintByCount(count)];
+      // 主股同日也达到口径，做小圆点标记
+      if(mainUp){ const m = document.createElement('span'); m.className='mark'; m.title='主股同日达标'; cell.appendChild(m) }
+      const det = cell.querySelector('.detail'); det.textContent = count>0 ? '同概念涨停 '+count+' 只' : '';
+    }
+
+    async function main(){
+      const codeInput = document.getElementById('code');
+      let code = withPrefix(q('code') || codeInput.value || '');
+      if(!code){ alert('请在地址栏 ?code= 后提供股票代码，例如 sh600000'); return }
+      codeInput.value = code;
+      document.getElementById('goBtn').onclick = ()=>{ const c = withPrefix(codeInput.value); location.href = `?code=${encodeURIComponent(c)}&limit=${encodeURIComponent(document.getElementById('limit').value)}` };
+      const perConcept = Number(q('limit')||document.getElementById('limit').value)||60;
+      document.getElementById('status').textContent = '服务端计算中…';
+      const resp = await fetch(`/shares/api/v1/analy.same_concept_limitup_calendar?code=${encodeURIComponent(code)}&days=90&perConcept=${encodeURIComponent(perConcept)}`);
+      const d = await resp.json();
+      if(!resp.ok){ document.getElementById('status').textContent = '失败'; return }
+      document.getElementById('stock').textContent = code;
+      document.getElementById('countCodes').textContent = String(d.codes||0);
+      const chips = document.getElementById('concepts'); chips.innerHTML='';
+      (d.concepts||[]).forEach(n=>{ const s=document.createElement('span'); s.className='chip'; s.textContent=n; chips.appendChild(s) });
+      const dates = (d.items||[]).map(it=>it.date);
+      renderCalendar(dates);
+      for(const it of (d.items||[])){ updateCell(it.date, it.count) }
+      document.getElementById('status').textContent = '完成。日期点击可查看当日明细。';
+    }
+    // 后端聚合版本，替换默认 main
+    async function main_server(){
+      const codeInput = document.getElementById('code');
+      let code = withPrefix(q('code') || codeInput.value || '');
+      if(!code){ alert('请在地址栏 ?code= 后提供股票代码，例如 sh600000'); return }
+      codeInput.value = code;
+      // 初始化口径与阈值
+      const modeSel = document.getElementById('mode');
+      const minPctInput = document.getElementById('minPct');
+      const thTypeSel = document.getElementById('thType');
+      const minRateInput = document.getElementById('minRate');
+      const mode = (q('mode')||modeSel?.value||'bigrise');
+      if(modeSel) modeSel.value = mode;
+      const thType = (q('thType')||thTypeSel?.value||'rel');
+      if(thTypeSel) thTypeSel.value = thType;
+      const minRate = Number(q('minRate')||minRateInput?.value||0.7)||0.7;
+      if(minRateInput) minRateInput.value = String(minRate);
+      const minPct = Number(q('minPct')||minPctInput?.value||7)||7;
+      if(minPctInput) minPctInput.value = String(minPct);
+      document.getElementById('goBtn').onclick = ()=>{
+        const c = withPrefix(codeInput.value);
+        const u = new URL(location.href);
+        u.searchParams.set('code', c);
+        u.searchParams.set('limit', String(document.getElementById('limit').value||60));
+        u.searchParams.set('mode', (document.getElementById('mode')||{}).value||'bigrise');
+        u.searchParams.set('thType', (document.getElementById('thType')||{}).value||'rel');
+        u.searchParams.set('minRate', String(document.getElementById('minRate')?.value||0.7));
+        u.searchParams.set('minPct', String(document.getElementById('minPct')?.value||7));
+        u.searchParams.set('days', '22');
+        location.href = u.pathname + '?' + u.searchParams.toString();
+      };
+      const perConcept = Number(q('limit')||document.getElementById('limit').value)||60;
+      document.getElementById('status').textContent = '服务端计算中…';
+      // 解析已选择概念
+      const selected = getQueryAll('concepts');
+      const qp = new URLSearchParams();
+      qp.set('code', code); qp.set('days', String(q('days')||'22')); qp.set('perConcept', String(perConcept));
+      qp.set('mode', mode); qp.set('thType', thType); qp.set('minRate', String(minRate)); qp.set('minPct', String(minPct));
+      selected.forEach(v=>qp.append('concepts', v));
+      const resp = await fetch(`/shares/api/v1/analy.same_concept_limitup_calendar?${qp.toString()}`);
+      const d = await resp.json();
+      if(!resp.ok){ document.getElementById('status').textContent = '失败'; return }
+      document.getElementById('stock').textContent = code;
+      document.getElementById('countCodes').textContent = String(d.codes||0);
+      const chips = document.getElementById('concepts'); chips.innerHTML='';
+      const selectedSet = new Set(selected.length? selected : (d.concepts||[]));
+      (d.concepts||[]).forEach(n=>{ const s=document.createElement('span'); s.className='chip'+(selectedSet.has(n)?' sel':''); s.textContent=n; s.onclick=()=>{ s.classList.toggle('sel'); }; chips.appendChild(s) });
+      gSelectedConcepts = Array.from(selectedSet);
+      // 应用选择按钮
+      const apply = document.getElementById('applySel');
+      if(apply){ apply.onclick = ()=>{
+        const sels = Array.from(document.querySelectorAll('#concepts .chip.sel')).map(x=>x.textContent);
+        const u = new URL(location.href);
+        u.searchParams.delete('concepts');
+        sels.forEach(v=>u.searchParams.append('concepts', v));
+        location.href = u.pathname + '?' + u.searchParams.toString();
+      } }
+      const dates = (d.items||[]).map(it=>it.date);
+      renderCalendar(dates);
+      for(const it of (d.items||[])){ updateCell(it.date, it.count, !!it.mainUp) }
+      document.getElementById('status').textContent = '完成。日期点击可查看当日明细。';
+      // 动态图例文案
+      const legendTxt = document.getElementById('legendTxt');
+      if(legendTxt){
+        if(mode==='bigrise'){
+          if(thType==='rel') legendTxt.textContent = `颜色深度表示当日大涨数量（≥涨停幅度的 ${Math.round(minRate*100)}%）`;
+          else legendTxt.textContent = `颜色深度表示当日大涨数量（≥${minPct}%）`;
+        } else { legendTxt.textContent = '颜色深度表示当日涨停数量'; }
+      }
+      // 动态标题与提示
+      const title = document.getElementById('title'); if(title){ title.textContent = `同概念${mode==='bigrise'?'大涨':'涨停'}日历`; }
+      const tip = document.getElementById('tipline'); if(tip){ tip.textContent = `提示：点击日历某一天，进入当日同概念${mode==='bigrise'?'大涨':'涨停'}明细${mode==='limitup'?'（若为当日，含首封时间估算）':''}。绿色圆点表示主股票当日也达标。`; }
+    }
+    document.addEventListener('DOMContentLoaded', main_server);
+  </script>
+</head>
+<body>
+  <div class="wrap">
+    <h2 id="title">同概念大涨/涨停日历</h2>
+    <div class="grid2">
+      <div>
+        <div class="row">
+          <label>股票代码：</label>
+          <input id="code" placeholder="如 sh600000" />
+          <label>口径：</label>
+          <select id="mode">
+            <option value="bigrise" selected>大涨</option>
+            <option value="limitup">涨停</option>
+          </select>
+          <label>阈值类型：</label>
+          <select id="thType">
+            <option value="rel" selected>相对涨停</option>
+            <option value="abs">绝对百分比</option>
+          </select>
+          <label>相对比例：</label>
+          <input id="minRate" type="number" step="0.05" value="0.7" style="width:70px;" />
+          <label>绝对阈值(%)：</label>
+          <input id="minPct" type="number" value="7" style="width:70px;" />
+          <label>每概念取前 N：</label>
+          <input id="limit" type="number" value="60" style="width:80px;" />
+          <button id="goBtn">生成</button>
+          <span id="status" class="muted"></span>
+        </div>
+        <div class="row"><span id="stock" style="font-weight:600"></span></div>
+        <div class="row">概念（点击选择）：<span id="concepts"></span></div>
+        <div class="row"><button id="applySel">仅统计选中概念</button></div>
+        <div class="row muted">参与统计的同概念股票数：<span id="countCodes">0</span>（去重后）</div>
+        <div class="legend muted">
+          <span id="legendTxt">颜色深度表示当日大涨数量（≥涨停幅度的 70%）：</span>
+          <span class="dot dot0"></span><span>0</span>
+          <span class="dot dot1"></span><span>1</span>
+          <span class="dot dot2"></span><span>2</span>
+          <span class="dot dot3"></span><span>4</span>
+          <span class="dot dot4"></span><span>6</span>
+          <span class="dot dot5"></span><span>10+</span>
+        </div>
+      </div>
+      <div>
+        <div id="tipline" class="muted">提示：点击日历某一天，进入当日同概念明细。绿色圆点表示主股票当日也达标。</div>
+        <div class="muted">数据来源：shares.dayliy（日K）、analy.concepts_by_code、analy.concept_stocks。</div>
+      </div>
+    </div>
+    <div class="calendar" id="cal" style="grid-template-columns: repeat(7, 1fr);"></div>
+  </div>
+</body>
+</html>

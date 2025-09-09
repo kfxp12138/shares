@@ -142,22 +142,17 @@
       const data = await resp.json();
       listData = data.list||[]; render();
     }
-    const conceptsCache = {};
-
     function render(){
       sortList();
       const tb = document.querySelector('#tbl tbody'); tb.innerHTML='';
-      const codesToFetch = [];
       for(const row of (listData||[])){
         const tr = document.createElement('tr');
         const pc = (row.percent||0);
         const cls = pc>=0?'pos':'neg';
         const link = '/shares/echarts/echarts.html?tag=daily&code='+encodeURIComponent(row.code);
-        const cellId = `cpt-${row.code}`;
         const concepts = (row.conceptsArr && row.conceptsArr.length) ? row.conceptsArr : parseConcepts(row.concepts||'');
-        // 初始用接口返回值渲染；稍后用专用接口补全
         const chipsLinks = (concepts||[]).map(x=>`<a href=\"/shares/echarts/concept.html?name=${encodeURIComponent(x)}\" target=\"_blank\">${x}</a>`).join(' ');
-        const chips = `<div class=\"chips\" id=\"${cellId}\">${chipsLinks}${(concepts||[]).length>1? ' <a href=\"#\" class=\"toggle\" onclick=\"toggleChips(this);return false;\">展开</a>':''}</div>`;
+        const chips = `<div class=\"chips\">${chipsLinks}${(concepts||[]).length>1? ' <a href=\"#\" class=\"toggle\" onclick=\"toggleChips(this);return false;\">展开</a>':''}</div>`;
         tr.innerHTML = `
           <td><a href="${link}" target="_blank">${row.code}</a></td>
           <td>${row.name||''}</td>
@@ -170,38 +165,7 @@
           <td><button onclick="removeCode('${row.code}')">移除</button></td>
         `;
         tb.appendChild(tr);
-        if(!conceptsCache[row.code]){ codesToFetch.push(row.code); }
       }
-      if(codesToFetch.length){ fetchConceptsBatch(codesToFetch); }
-    }
-
-    async function fetchConceptsBatch(codes){
-      // 并发限制
-      const limit = 6;
-      let idx = 0;
-      async function next(){
-        if(idx >= codes.length) return;
-        const code = codes[idx++];
-        try{
-          const r = await fetch(`/shares/api/v1/analy.concepts_by_code?code=${encodeURIComponent(code)}`);
-          const d = await r.json();
-          if(d && Array.isArray(d.concepts)){
-            conceptsCache[code] = d.concepts;
-            updateConceptsCell(code, d.concepts);
-          }
-        }catch(e){ /* ignore */ }
-        return next();
-      }
-      const tasks = Array.from({length: Math.min(limit, codes.length)}, next);
-      await Promise.all(tasks);
-    }
-
-    function updateConceptsCell(code, arr){
-      const el = document.getElementById(`cpt-${code}`);
-      if(!el) return;
-      const concepts = Array.isArray(arr) ? arr : parseConcepts(arr||'');
-      const links = concepts.map(x=>`<a href="/shares/echarts/concept.html?name=${encodeURIComponent(x)}" target="_blank">${x}</a>`).join(' ');
-      el.innerHTML = `${links}${concepts.length>1? ' <a href="#" class="toggle" onclick="toggleChips(this);return false;">展开</a>':''}`;
     }
 
     document.addEventListener('DOMContentLoaded', ()=>{ initGroupSel(); refresh(); });

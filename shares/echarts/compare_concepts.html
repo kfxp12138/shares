@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>概念重叠分析（A vs B）</title>
+  <style>
+    body { margin:0; font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+    .wrap { padding: 14px; max-width: 1200px; margin: 0 auto; }
+    h2, h3 { margin: 8px 0; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 1000px){ .grid { grid-template-columns: 1fr; } }
+    textarea, input, select { width: 100%; box-sizing: border-box; padding: 8px; font-size: 14px; font-family: SFMono-Regular,Consolas,Menlo,monospace; }
+    textarea { min-height: 120px; }
+    button { padding: 8px 12px; margin-right: 8px; }
+    .muted { color:#888; font-size: 12px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+    th, td { border-bottom: 1px solid #eee; padding: 6px 8px; text-align: left; }
+    th { position: sticky; top: 0; background: #fafafa; z-index: 1; }
+    .pos { color: #e54d42; }
+    .neg { color: #39b54a; }
+    .flex { display:flex; gap:8px; align-items:center; flex-wrap: wrap; }
+    .chips a { margin-right: 6px; display:inline-block; margin-bottom:4px; text-decoration: none; }
+    .tips { background:#fafafa; padding:8px; border-radius:4px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h2>概念重叠分析（A vs B）</h2>
+    <div class="tips muted">输入两组股票：A（参考组）与 B（目标组）。按“B 股票与 A 的概念重叠数量”从多到少排序，并列出重叠概念及次数。</div>
+
+    <div class="grid">
+      <div>
+        <h3>自选股 A（参考）</h3>
+        <textarea id="codesA" placeholder="示例：\nsh600000, sz000001\n600519\n宁德时代"></textarea>
+        <div class="muted">支持代码/名称，逗号、空格或换行分隔；未带市场前缀会自动推断（6→sh，0/3→sz）。</div>
+      </div>
+      <div>
+        <h3>自选股 B（目标）</h3>
+        <textarea id="codesB" placeholder="示例：\nsh600036, sz300750\n中国平安"></textarea>
+      </div>
+    </div>
+    <div class="row flex" style="margin-top:10px;">
+      <button onclick="analyze()">分析</button>
+      <button onclick="clearAll()">清空</button>
+      <button onclick="exportCSV()">导出 CSV</button>
+      <label class="muted"><input type="checkbox" id="onlyOverlap" checked /> 仅显示有重叠的 B</label>
+      <span id="status" class="muted"></span>
+    </div>
+
+    <div class="tips" style="margin:10px 0;">
+      <div class="muted">导入/导出 JSON（形如 {"codesA":["sh600000"],"codesB":["sz000001"]} 或 A/B 为字符串）：</div>
+      <textarea id="jsonBox" placeholder='{"codesA":["sh600000","sz000001"],"codesB":["sh600036","sz300750"]}'></textarea>
+      <div class="row flex">
+        <button onclick="importJSON()">写入 A/B</button>
+        <button onclick="genJSON()">从 A/B 生成 JSON</button>
+        <button onclick="fillExample(1)">填充示例1（白酒 vs 消费）</button>
+        <button onclick="fillExample(2)">填充示例2（银行/金融）</button>
+      </div>
+      <div class="row flex">
+        <input type="file" id="jsonFile" accept=".json,application/json" />
+        <button onclick="readJsonFile(false)">读取到文本框</button>
+        <button onclick="readJsonFile(true)">读取并写入 A/B</button>
+      </div>
+    </div>
+
+    <h3>结果（按重叠概念数量降序）</h3>
+    <table id="tbl">
+      <thead>
+        <tr>
+          <th style="width:14%">代码</th>
+          <th style="width:16%">名称</th>
+          <th style="width:10%">加权</th>
+          <th style="width:10%">重叠数</th>
+          <th>重叠概念（概念名(在A中的出现次数)）</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <h3>参考组 A 的概念频次</h3>
+    <table id="tblConcepts">
+      <thead>
+        <tr>
+          <th style="width:60%">概念</th>
+          <th style="width:20%">A 中出现次数</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    // ---------- helpers ----------
+    function parseList(s){
+      const arr = String(s||'').split(/[\s,，、;；|\u007C\n\r]+/).map(x=>x.trim()).filter(Boolean);
+      return Array.from(new Set(arr));
+    }
+    async function normalizeCodes(rawList){
+      const out = [];
+      for(const item of rawList){
+        const it = item.trim(); if(!it) continue;
+        const mkt = guessMarket(it);
+        if(mkt){ out.push(mkt); continue; }
+        // fallback: quick search by name
+        try{
+          const r = await fetch('/shares/api/v1/analy.quick_search?q='+encodeURIComponent(it));
+          const d = await r.json();
+          if(d && d.list && d.list.length>0){ out.push(d.list[0].code); continue; }
+        }catch(e){}
+      }
+      return Array.from(new Set(out));
+    }
+    function guessMarket(input){
+      const s = String(input).trim();
+      if(/^((sh|sz|hk|bj)\d{5,6})$/i.test(s)) return s.toLowerCase();
+      if(/^\d{5,6}$/.test(s)){
+        if(/^6|68/.test(s)) return 'sh'+s;
+        if(/^(0|2|3)/.test(s)) return 'sz'+s;
+      }
+      return '';
+    }
+    async function getConceptsByCode(code){
+      const r = await fetch('/shares/api/v1/analy.concepts_by_code?code='+encodeURIComponent(code));
+      const d = await r.json();
+      return Array.isArray(d.concepts)? d.concepts.map(x=>String(x||'').trim()).filter(Boolean) : [];
+    }
+    async function getNamesByCodes(codes){
+      if(!codes || !codes.length) return {};
+      try{
+        const r = await fetch('/shares/api/v1/analy.pick_codes', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ codes, limit: Math.max(1000, codes.length) }) });
+        const d = await r.json();
+        const mp = {};
+        (d.list||[]).forEach(it=>{ mp[it.code] = it.name; });
+        return mp;
+      }catch(e){ return {}; }
+    }
+    async function fetchConceptsBatch(codes, concurrency=8){
+      const out = {}; let idx=0;
+      async function next(){
+        if(idx>=codes.length) return;
+        const code = codes[idx++];
+        try{ out[code] = await getConceptsByCode(code); }catch(e){ out[code]=[]; }
+        return next();
+      }
+      const tasks = Array.from({length: Math.min(concurrency, codes.length)}, next);
+      await Promise.all(tasks);
+      return out;
+    }
+    function intersectCount(arr, setA){
+      let n=0; const matched=[];
+      for(const v of (arr||[])){
+        if(setA.has(v)){ n++; matched.push(v); }
+      }
+      return { n, matched };
+    }
+
+    // ---------- main ----------
+    async function analyze(){
+      const status = document.getElementById('status');
+      status.textContent = '解析输入...';
+      const listA = parseList(document.getElementById('codesA').value);
+      const listB = parseList(document.getElementById('codesB').value);
+      const onlyOverlap = document.getElementById('onlyOverlap').checked;
+      if(!listA.length || !listB.length){ status.textContent = '请输入有效的 A/B 股票列表'; return; }
+      status.textContent = '提交后端计算...';
+      const r = await fetch('/shares/api/v1/analy.compare_concepts', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ codesA: listA, codesB: listB, onlyOverlap }) });
+      const d = await r.json();
+      if(!r.ok){ status.textContent = '失败: '+(d.err||JSON.stringify(d)); return; }
+      const tb = document.querySelector('#tbl tbody'); tb.innerHTML='';
+      for(const it of (d.rows||[])){
+        const tr = document.createElement('tr');
+        const link = '/shares/echarts/echarts.html?tag=daily&code='+encodeURIComponent(it.code);
+        const chips = (
+          it.conceptsDetail && it.conceptsDetail.length
+            ? it.conceptsDetail.map(o=>`<a href="/shares/echarts/concept.html?name=${encodeURIComponent(o.name)}" target="_blank">${o.name}(${o.count})</a>`)
+            : (it.concepts||[]).map(x=>`<a href="/shares/echarts/concept.html?name=${encodeURIComponent(x)}" target="_blank">${x}</a>`)
+        ).join(' ');
+        tr.innerHTML = `
+          <td><a href="${link}" target="_blank">${it.code}</a></td>
+          <td>${it.name||''}</td>
+          <td>${it.weighted||0}</td>
+          <td>${it.overlap||0}</td>
+          <td class="chips">${chips}</td>
+        `;
+        tb.appendChild(tr);
+      }
+      const tf = document.querySelector('#tblConcepts tbody'); tf.innerHTML='';
+      for(const it of (d.conceptsA||[])){
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${it.name}</td><td>${it.count}</td>`;
+        tf.appendChild(tr);
+      }
+      status.textContent = `完成：B 共 ${(d.rows||[]).length} 条（仅重叠=${onlyOverlap}）`;
+    }
+
+    function clearAll(){
+      document.getElementById('codesA').value = '';
+      document.getElementById('codesB').value = '';
+      document.querySelector('#tbl tbody').innerHTML='';
+      document.querySelector('#tblConcepts tbody').innerHTML='';
+      document.getElementById('status').textContent='';
+    }
+    function importJSON(){
+      const s = (document.getElementById('jsonBox').value||'').trim();
+      if(!s){ alert('请粘贴 JSON'); return; }
+      let d; try{ d = JSON.parse(s); }catch(e){ alert('JSON 解析失败: '+e.message); return; }
+      let A = d.codesA || d.A || d.a || [];
+      let B = d.codesB || d.B || d.b || [];
+      if(typeof A === 'string') A = A.split(/[\s,，、;；|\u007C\n\r]+/);
+      if(typeof B === 'string') B = B.split(/[\s,，、;；|\u007C\n\r]+/);
+      document.getElementById('codesA').value = (A||[]).join('\n');
+      document.getElementById('codesB').value = (B||[]).join('\n');
+    }
+    function genJSON(){
+      const A = parseList(document.getElementById('codesA').value);
+      const B = parseList(document.getElementById('codesB').value);
+      const obj = { codesA: A, codesB: B };
+      document.getElementById('jsonBox').value = JSON.stringify(obj, null, 2);
+    }
+    function readJsonFile(toAB){
+      const f = document.getElementById('jsonFile').files[0];
+      if(!f){ alert('请选择 JSON 文件'); return; }
+      const fr = new FileReader();
+      fr.onload = () => {
+        document.getElementById('jsonBox').value = fr.result;
+        if(toAB){ importJSON(); }
+      };
+      fr.onerror = () => alert('读取文件失败: '+fr.error);
+      fr.readAsText(f);
+    }
+    function fillExample(idx){
+      let ex = {};
+      if(idx === 1){
+        ex = {
+          codesA: [
+            "sh600519","sz000858","sz000568","sh600809","sz002304",
+            "sh603369","sz002646","sz000596","sh603198","sz000799"
+          ],
+          codesB: [
+            "sz000596","sh603198","sz000799","sz002304","sh603288",
+            "sz002461","sh600600","sh600519","sz000858","sh600809"
+          ],
+          onlyOverlap: true
+        };
+      } else if(idx === 2){
+        ex = {
+          codesA: [
+            "sh600000","sz000001","sh600036","sh601398","sh601939",
+            "sh601288","sh601988","sh601166","sh601818","sh601998"
+          ],
+          codesB: [
+            "sh600016","sh601328","sh601658","sh601009","sh600837",
+            "sh600030","sz000776","sh601788","sh601377","sh601688"
+          ],
+          onlyOverlap: true
+        };
+      }
+      const s = JSON.stringify(ex, null, 2);
+      document.getElementById('jsonBox').value = s;
+      importJSON();
+    }
+  </script>
+  <script>
+    async function exportCSV(){
+      const listA = parseList(document.getElementById('codesA').value);
+      const listB = parseList(document.getElementById('codesB').value);
+      if(!listA.length || !listB.length){ alert('请输入有效的 A/B 列表'); return; }
+      const form = document.createElement('form');
+      form.method = 'POST'; form.action = '/shares/api/v1/analy.compare_concepts_export';
+      const mk = (k,v)=>{ const i=document.createElement('input'); i.type='hidden'; i.name=k; i.value=v; form.appendChild(i); };
+      mk('codesA', listA.join(',')); mk('codesB', listB.join(','));
+      document.body.appendChild(form); form.submit(); document.body.removeChild(form);
+    }
+  </script>
+</body>
+</html>

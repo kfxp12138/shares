@@ -91,7 +91,14 @@ func InitObj(router gin.IRoutes, objs ...interface{}) {
 	base.RegisterHandlerFunc(router, []string{"get"}, "/analy.export_concepts", analy.ExportConcepts)
 	// 一键调用 Python（仅开发环境）
 	base.RegisterHandlerFunc(router, []string{"get", "post"}, "/analy.refresh_concepts_py", analy.RefreshConceptsByPython)
+	// 概念重叠分析（后端）
+	base.RegisterHandlerFunc(router, []string{"post"}, "/analy.compare_concepts", analy.CompareConcepts)
+	base.RegisterHandlerFunc(router, []string{"post"}, "/analy.compare_concepts_export", analy.CompareConceptsExport)
 	base.RegisterHandlerFunc(router, []string{"get"}, "/analy.top_stocks", analy.TopStocks)
+
+	// 同概念涨停-后端聚合
+	base.RegisterHandlerFunc(router, []string{"get", "post"}, "/analy.same_concept_limitup_calendar", analy.SameConceptLimitupCalendar)
+	base.RegisterHandlerFunc(router, []string{"get", "post"}, "/analy.same_concept_limitup_day", analy.SameConceptLimitupDay)
 
 	base.OutDoc(true)
 	base.Register(router, objs...) // 对象注册
