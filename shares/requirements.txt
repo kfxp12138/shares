@@ -1,0 +1,12 @@
+# Python dependencies for shares service scripts (adata concept generator)
+# Install from repo root:
+#   pip install -r shares/shares/requirements.txt
+
+# Local adata package (editable install)
+-e ../../adata
+
+# adata runtime dependencies
+requests>=2.16.0
+pandas>=0.22.0
+beautifulsoup4>=4.0.2
+py_mini_racer>=0.6.0

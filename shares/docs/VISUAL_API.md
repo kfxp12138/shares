@@ -260,3 +260,27 @@ http://localhost:8082/shares/echarts/compare_concepts.html
 
 
 http://localhost:8082/shares/echarts/limitup_calendar.html?code=sh600000&concepts=人工智能&concepts=CPO
+
+
+口径
+
+大涨:bigrise：按“涨幅达到某个阈值”统计。阈值可用两种方式设置（见下方“阈值”）。更灵活，适合跨板块（主板/创业板/科创板/ST）比较。
+涨停:limitup：按“是否涨停”统计。涨停幅度依据标的所属规则自动判断：
+主板等：10%
+创业板/科创板：20%
+ST：5%
+适用范围：既影响日历中“当日达标数量”的计算，也影响明细页的入选标准；涨停口径在“今天”场景会额外估算首封时间。
+阈值
+
+相对阈值:thType=rel + minRate：以“各自涨停幅度×比例”作为达标标准（默认）。举例：minRate=0.7
+主板(10%) → 10%×0.7=7%
+创/科(20%) → 20%×0.7=14%
+ST(5%) → 5%×0.7=3.5%
+适合跨不同涨停制度的股票统一口径比较。
+绝对阈值:thType=abs + minPct：以固定百分比作为达标标准（如 minPct=8 表示涨幅≥8%即达标）。
+优先级与容差：
+后端以 minRate>0 时优先采用“相对阈值”，否则使用“绝对阈值”。
+计算时允许 0.2 个百分点容差，用于避免计算/数据源误差。
+默认值（页面已内置，可在地址栏或控件修改）：
+mode=bigrise（大涨）、thType=rel（相对阈值）、minRate=0.7、days=22（近一月交易日）
+若切换为 mode=limitup（涨停），将按 10%/20%/5% 规则计算，忽略 minRate/minPct。
