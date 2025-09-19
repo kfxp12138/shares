@@ -4,7 +4,7 @@
 
 ## 一、项目概述
 
-- 定位：A 股量化交易与盯盘助手，包含日常数据采集、实时行情监控、技术/消息分析、微信提醒、组织/分组管理与可视化。
+- 定位：A 股量化交易与盯盘助手，包含日常数据采集、实时行情监控、技术/消息分析、组织/分组管理与可视化。
 - 技术栈：Go（Gin + ginrpc + goplugins/micro）、GORM（自动模型）、MySQL、Redis、Prometheus、Swagger；配套前端（uniapp 小程序、Element+Webpack）与 Python 技术指标脚本。
 - 运行形态：HTTP 服务（开发端口 8082，生产可配 82，API 前缀 `/shares/api/v1`），可选微服务/插件化运行。
 
@@ -25,7 +25,6 @@
   - 股票服务：`shares/shares/internal/service/shares/*.go`
   - 分析服务：`shares/shares/internal/service/analy/*.go`
   - 事件/调度/采集：`shares/shares/internal/service/event/*.go`
-  - 微信服务：`shares/shares/internal/service/weixin/*.go`
   - NLP/AI（可选）：`shares/shares/internal/service/nlp/*.go`
 - 文档/可视化
   - API 文档（生成）：`shares/shares/docs/markdown/*.md`
@@ -49,7 +48,6 @@
 参考生成文档：
 - 股票：`shares/shares/docs/markdown/Shares.md`
 - 分析：`shares/shares/docs/markdown/Analy.md`
-- 微信：`shares/shares/docs/markdown/Weixin.md`
 
 核心能力概览：
 - Shares
@@ -59,6 +57,7 @@
   - 消息：`GetMsg`（最近 10 条）/`HaveNewMsg`（日 Badge）
 - Analy
   - `Analy.AnalyCode` 聚合技术/消息策略（MACD、北上、龙虎榜、主力净流入、成交量、十字星、线性预测、情绪关键词等）
+  - 同概念涨停导出：`POST /shares/api/v1/analy.limitup_pool_export`，上传股票池（xlsx/csv/txt）并生成概念维度的涨停 Excel 报表，支持自选交易日、自动统计连板/近 3/5 日涨停次数、5/10 日涨幅。
 - Weixin
   - `Oauth`/`ReLogin` 授权登录并设置 Cookie（`user_token`/`session_token`）
   - `GetUserInfo`/`UpsetUserInfo` 用户资料读取与更新（涨绿跌红、仅 20 日、手机号等）
@@ -76,7 +75,7 @@
   - 快速涨跌：三分钟窗口，涨幅≥3% 或跌幅≥4%（午后权重加倍）；
   - 价格/百分比阈值：Up/Down/UpPercent/DownPercent；
   - MA 实时：跌破/站上 5/10/20 日线（20 日可放宽条件）。
-  - 消息：模板消息写入 `msg_tbl` 并通过微信发送（去重记录在 `msg_rapidly_tbl`）。
+  - 消息：模板消息写入 `msg_tbl`（去重记录在 `msg_rapidly_tbl`）。
 
 ## 六、数据模型（核心表）
 
@@ -97,7 +96,7 @@
   - `base.is_dev`：开发模式开关
   - `tools_type`：0 启用定时任务；>0 表示工具模式（跳过定时调度）
   - `db_info` / `redis_info` / `etcd_info`
-  - `wx_info`：微信相关（AppID/AppSecret/APIKey/MchID/NotifyURL/ShearURL）
+  - （微信相关配置项已移除）
   - `port`：默认 82；`file_host`：二维码等外链前缀
   - `max_capacity`：用户默认容量；`def_group`：默认分组；`ext`：`[sh,sz,hk]`
   - `adata.concepts_url`：概念映射 adata JSON 源（配置后每日 08:00 自动刷新）
@@ -142,7 +141,8 @@ sudo ./shares run
  - 示例：`http://localhost:8082/shares/echarts/myboard.html`
  - 本地自选分组（无需登录）：`shares/shares/echarts/watchlist.html`（依赖 `/shares/api/v1/analy.pick_codes`）
   - 示例：`http://localhost:8082/shares/echarts/watchlist.html`
-- 小程序：`shares/shares/uniapp/*`（在 `utils/server/*.js` 中配置服务地址）
+- H5 上传页：`shares/shares/echarts/limitup_export.html`（`http://localhost:8082/shares/echarts/limitup_export.html`），调用 `POST /shares/api/v1/analy.limitup_pool_export`。
+- 旧 uni-app 代码：`shares/shares/uniapp/*`（若需继续使用请自行构建）。
 - Web Demo：`shares/element/webpack/*`
  - 概念重叠分析：`shares/shares/echarts/compare_concepts.html`（依赖接口 `/shares/api/v1/analy.compare_concepts` / `..._export`）
 
@@ -174,7 +174,6 @@ sudo ./shares run
 - 分析服务：`shares/shares/internal/service/analy/analy.go`
 - 事件调度：`shares/shares/internal/service/event/event.go`
 - 行情抓取：`shares/shares/internal/service/event/search.go`
-- 微信服务：`shares/shares/internal/service/weixin/weixin.go`
 - 配置中心：`shares/shares/conf/config.yml`、`shares/shares/internal/config/*.go`
 - ORM 模型：`shares/shares/internal/model/*.go`
 - API 文档：`shares/shares/docs/markdown/*.md`、`shares/shares/docs/swagger/swagger.json`

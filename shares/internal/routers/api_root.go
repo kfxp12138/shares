@@ -4,10 +4,10 @@ import (
 	"net/http"
 
 	"shares/internal/api"
+	"shares/internal/config"
 	"shares/internal/service/analy"
 	_ "shares/internal/service/analy"
 	"shares/internal/service/shares"
-	"shares/internal/service/weixin"
 	proto "shares/rpc/shares"
 
 	"github.com/chenjiandongx/ginprom"
@@ -22,12 +22,10 @@ import (
 // OnInitRoot 初始化
 func OnInitRoot(s server.Server, router gin.IRoutes, objs ...interface{}) {
 	var args []interface{}
-	w := new(weixin.Weixin)
 	h := new(shares.Shares)
 	a := new(analy.Analy)
-	args = append(args, w, h, a)
+	args = append(args, h, a)
 	if s != nil {
-		proto.RegisterWeixinServer(s, w) // 服务注册
 		proto.RegisterSharesServer(s, h)
 	}
 	args = append(args, objs...)
@@ -59,7 +57,9 @@ func InitFunc(router gin.IRoutes) {
 	router.GET("/health", func(c *gin.Context) {
 		c.String(http.StatusOK, "ok")
 	}) // 健康检查
-	router.GET("/metrics", ginprom.PromHandler(promhttp.Handler())) // 添加grafana监控
+	if config.ShouldExposeMetrics() {
+		router.GET("/metrics", ginprom.PromHandler(promhttp.Handler())) // 添加grafana监控
+	}
 }
 
 // InitObj 初始化对象
@@ -67,8 +67,6 @@ func InitObj(router gin.IRoutes, objs ...interface{}) {
 	base := ginrpc.New(ginrpc.WithCtx(api.NewAPIFunc), ginrpc.WithOutDoc(dev.IsDev()), ginrpc.WithDebug(dev.IsDev()),
 		ginrpc.WithOutPath("internal/routers"), ginrpc.WithImportFile("rpc/common", "../apidoc/rpc/common"),
 		ginrpc.WithBeforeAfter(&ginrpc.DefaultGinBeforeAfter{}))
-	router.POST("/analy.deal_msg", base.HandlerFunc(analy.DealMsg))
-	base.RegisterHandlerFunc(router, []string{"post", "get"}, "/analy.wx_token", analy.WxTokenSignature)
 	// 选股板块（热板）
 	base.RegisterHandlerFunc(router, []string{"post", "get"}, "/analy.pick_board", analy.PickBoard)
 	// 自选股榜单
@@ -94,6 +92,7 @@ func InitObj(router gin.IRoutes, objs ...interface{}) {
 	// 概念重叠分析（后端）
 	base.RegisterHandlerFunc(router, []string{"post"}, "/analy.compare_concepts", analy.CompareConcepts)
 	base.RegisterHandlerFunc(router, []string{"post"}, "/analy.compare_concepts_export", analy.CompareConceptsExport)
+	base.RegisterHandlerFunc(router, []string{"post"}, "/analy.limitup_pool_export", analy.LimitupPoolExport)
 	base.RegisterHandlerFunc(router, []string{"get"}, "/analy.top_stocks", analy.TopStocks)
 
 	// 同概念涨停-后端聚合
@@ -109,11 +108,16 @@ func Cors() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		method := c.Request.Method
 
-		c.Header("Access-Control-Allow-Origin", "*")
+		if origin, ok := config.ResolveAllowOrigin(c.GetHeader("Origin")); ok {
+			c.Header("Vary", "Origin")
+			c.Header("Access-Control-Allow-Origin", origin)
+			if config.ShouldAllowCredentials() && origin != "*" {
+				c.Header("Access-Control-Allow-Credentials", "true")
+			}
+		}
 		c.Header("Access-Control-Allow-Headers", "Content-Type,AccessToken,X-CSRF-Token, Authorization, Token")
 		c.Header("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
 		c.Header("Access-Control-Expose-Headers", "Content-Length, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Content-Type")
-		c.Header("Access-Control-Allow-Credentials", "true")
 
 		//放行所有OPTIONS方法
 		if method == "OPTIONS" {

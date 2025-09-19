@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/xxjwxc/public/dev"
 	"github.com/xxjwxc/public/tools"
@@ -36,6 +37,7 @@ func onInit() {
 		fmt.Println("Load config file error: ", err.Error())
 		return
 	}
+	applySecurityDefaults()
 }
 
 // InitFile default value from file .
@@ -58,6 +60,25 @@ func InitFile(filename string) error {
 		return err
 	}
 	return nil
+}
+
+func applySecurityDefaults() {
+	if strings.TrimSpace(_map.Security.CookieSameSite) == "" {
+		_map.Security.CookieSameSite = "lax"
+	}
+	if _map.Security.CookieSecure == nil {
+		secure := !_map.IsDev
+		_map.Security.CookieSecure = &secure
+	}
+	if strings.EqualFold(strings.TrimSpace(_map.Security.CookieSameSite), "none") && _map.Security.CookieSecure != nil && !*_map.Security.CookieSecure {
+		secure := true
+		_map.Security.CookieSecure = &secure
+	}
+	// Avoid enabling credentials with wildcard origins.
+	if _map.Security.AllowCredentials && hasWildcardOrigin(_map.Security.AllowedOrigins) {
+		_map.Security.AllowCredentials = false
+	}
+	// SameSite=None requires secure cookies in modern browsers; enforced above.
 }
 
 // GetServiceConfig Get service configuration information

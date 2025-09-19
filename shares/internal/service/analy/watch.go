@@ -1,53 +1,51 @@
 package analy
 
 import (
-    "fmt"
-    "shares/internal/config"
-    "shares/internal/core"
-    "shares/internal/model"
-    "shares/internal/service/event"
-    "shares/internal/service/weixin"
-    proto "shares/rpc/shares"
-    "strings"
-    "time"
+	"fmt"
+	"shares/internal/config"
+	"shares/internal/core"
+	"shares/internal/model"
+	"shares/internal/service/event"
+	proto "shares/rpc/shares"
+	"strings"
+	"time"
 
-    "github.com/xxjwxc/public/mylog"
-    "github.com/xxjwxc/public/timerDeal"
-    "github.com/xxjwxc/public/tools"
-    wx "github.com/xxjwxc/public/weixin"
-    "gorm.io/datatypes"
+	"github.com/xxjwxc/public/mylog"
+	"github.com/xxjwxc/public/timerDeal"
+	"github.com/xxjwxc/public/tools"
+	"gorm.io/datatypes"
 )
 
 func init() {
-    if config.GetIsTools() > 0 {
-        return
-    }
+	if config.GetIsTools() > 0 {
+		return
+	}
 
-    // 概念导入由 adata 驱动，替代东财 initHY()
-    timerDeal.OnPeDay(8, 0, 0, ticketConceptsAdata)
-    timerDeal.OnPeDay(9, 10, 0, maDaily) // 每天9点10分执行()
-    timerDeal.OnPeDay(10, 0, 0, watchFl)
-    timerDeal.OnPeDay(10, 10, 0, watchMyself) // 每日
-    timerDeal.OnPeDay(14, 30, 0, ticket14)
-    timerDeal.OnPeDay(16, 0, 0, ticketTJ)
+	// 概念导入由 adata 驱动，替代东财 initHY()
+	timerDeal.OnPeDay(8, 0, 0, ticketConceptsAdata)
+	timerDeal.OnPeDay(9, 10, 0, maDaily) // 每天9点10分执行()
+	timerDeal.OnPeDay(10, 0, 0, watchFl)
+	timerDeal.OnPeDay(10, 10, 0, watchMyself) // 每日
+	timerDeal.OnPeDay(14, 30, 0, ticket14)
+	timerDeal.OnPeDay(16, 0, 0, ticketTJ)
 }
 
 // ticketConceptsAdata 定时从 adata 源刷新概念映射
 func ticketConceptsAdata() {
-    // 概念归属与盘中无强关联，仍沿用工作日判定以减少无谓请求
-    if !event.IsWorkDay() {
-        return
-    }
-    url := config.GetAdataConceptsURL()
-    if strings.TrimSpace(url) == "" {
-        mylog.Infof("adata concepts url not set, skip refresh")
-        return
-    }
-    if err := refreshConceptsFromURLString(url); err != nil {
-        mylog.Infof("adata concepts refresh failed: %v", err)
-        return
-    }
-    mylog.Infof("adata concepts refreshed from %s", url)
+	// 概念归属与盘中无强关联，仍沿用工作日判定以减少无谓请求
+	if !event.IsWorkDay() {
+		return
+	}
+	url := config.GetAdataConceptsURL()
+	if strings.TrimSpace(url) == "" {
+		mylog.Infof("adata concepts url not set, skip refresh")
+		return
+	}
+	if err := refreshConceptsFromURLString(url); err != nil {
+		mylog.Infof("adata concepts refresh failed: %v", err)
+		return
+	}
+	mylog.Infof("adata concepts refreshed from %s", url)
 }
 
 func ticket14() { // 时间间隔
@@ -228,15 +226,15 @@ func sendWatchMsg(sharesInfo *proto.SharesInfo, groupName, username string, msgs
 	if len(msgs) == 0 {
 		return nil
 	}
-
-	wxMsg := make([]wx.TempWebMsg, 0, len(msgs))
-	list := make([]model.MsgTbl, 0, len(msgs))
-	orm := core.Dao.GetDBr()
-	users, _ := model.WxUserinfoMgr(orm.Where("`group` like ?", fmt.Sprintf("%%%v%%", groupName))).Gets()
-	//users, _ := model.WxUserinfoMgr(orm.Where("openid = 'oxFCP6hcaZTReezFSs80ZY6qNAv8'")).Gets()
-	for _, v := range users {
+	ormR := core.Dao.GetDBr()
+	users, _ := model.WxUserinfoMgr(ormR.Where("`group` like ?", fmt.Sprintf("%%%v%%", groupName))).Gets()
+	if len(users) == 0 {
+		return nil
+	}
+	list := make([]model.MsgTbl, 0, len(users))
+	for _, u := range users {
 		list = append(list, model.MsgTbl{
-			OpenID:    v.Openid,
+			OpenID:    u.Openid,
 			Code:      sharesInfo.Code,
 			Key:       "组织提醒",
 			Desc:      strings.Join(msgs, "\n"),
@@ -245,41 +243,12 @@ func sendWatchMsg(sharesInfo *proto.SharesInfo, groupName, username string, msgs
 			Day:       datatypes.Date(time.Now()),
 			CreatedAt: time.Now(),
 		})
-
-		data := make(map[string]map[string]string)
-		mp := make(map[string]string)
-		mp["value"] = fmt.Sprintf("股票名称:%v(%v)", sharesInfo.Name, sharesInfo.Code)
-		data["first"] = mp
-
-		mp = make(map[string]string)
-		mp["value"] = fmt.Sprintf("%v(%v)", groupName, username)
-		data["keyword1"] = mp
-
-		mp = make(map[string]string)
-		mp["value"] = key
-		data["keyword2"] = mp
-
-		mp = make(map[string]string)
-		mp["value"] = tools.GetTimeStr(time.Now())
-		data["keyword3"] = mp
-
-		mp = make(map[string]string)
-		mp["value"] = strings.Join(msgs, "\n")
-		data["remark"] = mp
-
-		wxMsg = append(wxMsg, wx.TempWebMsg{
-			Touser:     v.Openid,
-			TemplateID: "z8VrA-QQRjXLIRAkz54lSPvHuaWU2mIzyeWuSfQBRms",
-			Page:       fmt.Sprintf("https://hospital.xxjwxc.cn/webshares/#/pages/add/add?scode=%v&tag=%v", sharesInfo.Code, "daily"),
-			Data:       data,
-		})
 	}
-
-	weixin.SendMsg(wxMsg)
-	err := model.MsgTblMgr(orm.DB).Save(&list).Error
+	err := model.MsgTblMgr(core.Dao.GetDBw().DB).Save(&list).Error
 	if err != nil {
 		mylog.Error(err)
+	} else {
+		mylog.Infof("[组织提醒] %s(%s) -> %s/%s: %s", sharesInfo.Name, sharesInfo.Code, groupName, username, strings.Join(msgs, " | "))
 	}
-
 	return err
 }

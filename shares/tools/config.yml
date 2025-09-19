@@ -24,7 +24,7 @@ db_info:
     username : root # 用户名
     host :  localhost # 地址
     password : 123456 # 密码
-    database : shares_tmp_db
+    database : caoguo_dev
     type: 0 # 数据库类型:0:mysql , 1:sqlite , 2:mssql
 self_type_define: # 自定义数据类型映射
     datetime: time.Time

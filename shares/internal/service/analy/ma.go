@@ -5,13 +5,11 @@ import (
 	"shares/internal/core"
 	"shares/internal/model"
 	"shares/internal/service/event"
-	"shares/internal/service/weixin"
 	"strings"
 	"time"
 
 	"github.com/xxjwxc/public/mylog"
 	"github.com/xxjwxc/public/tools"
-	wx "github.com/xxjwxc/public/weixin"
 	"gorm.io/datatypes"
 )
 
@@ -110,7 +108,6 @@ func sendmsg(msgs []*Msg) error {
 		return nil
 	}
 	orm := core.Dao.GetDBw()
-	wxMsg := make([]wx.TempWebMsg, 0, len(msgs))
 	list := make([]model.MsgTbl, 0, len(msgs))
 	for _, v := range msgs {
 		list = append(list, model.MsgTbl{
@@ -123,56 +120,10 @@ func sendmsg(msgs []*Msg) error {
 			Day:       datatypes.Date(time.Now()),
 			CreatedAt: time.Now(),
 		})
-
-		data := make(map[string]map[string]string)
-		mp := make(map[string]string)
-		mp["value"] = fmt.Sprintf("股票名称:%v", v.name)
-		mp["color"] = v.color
-
-		data["first"] = mp
-
-		mp = make(map[string]string)
-		mp["value"] = v.key
-		mp["color"] = v.color
-		data["keyword1"] = mp
-
-		mp = make(map[string]string)
-		mp["value"] = v.desc
-		mp["color"] = v.color
-		data["keyword2"] = mp
-
-		// mp = make(map[string]string)
-		// mp["value"] = "(无)"
-		// data["keyword3"] = mp
-
-		// mp = make(map[string]string)
-		// mp["value"] = "(无)"
-		// data["keyword4"] = mp
-
-		mp = make(map[string]string)
-		mp["value"] = tools.GetTimeStr(time.Now())
-		data["keyword5"] = mp
-
-		// 行业
-		if len(v.remark) > 0 {
-			mp = make(map[string]string)
-			mp["value"] = fmt.Sprintf("%v", v.remark)
-			data["remark"] = mp
-		}
-
-		wxMsg = append(wxMsg, wx.TempWebMsg{
-			Touser:     v.openid,
-			TemplateID: "t1GpGWEt4C8FAezjDqxupp0qDf--asgHfDoOq8TaECk",
-			Page:       fmt.Sprintf("https://hospital.xxjwxc.cn/webshares/#/pages/add/add?scode=%v&tag=%v", v.code, v.tag),
-			Data:       data,
-		})
 	}
-
-	weixin.SendMsg(wxMsg)
 	err := model.MsgTblMgr(orm.DB).Save(&list).Error
 	if err != nil {
 		mylog.Error(err)
 	}
-
 	return err
 }

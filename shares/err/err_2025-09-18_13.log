@@ -1,0 +1,177 @@
+=========================2025-09-18 13:04:56 ========================= 
+Got error when connect database::@tcp(localhost:3306)/caoguo_dev?charset=utf8&parseTime=True&loc=Local&interpolateParams=True: Error 1045 (28000): Access denied for user ''@'localhost' (using password: NO)
+goroutine 1 [running, locked to thread]:
+runtime/debug.Stack()
+	/usr/local/go/src/runtime/debug/stack.go:26 +0x64
+github.com/xxjwxc/public/mylog.(*errDeal).SaveError(0x14000722180, {0x140002645b0, 0xcd}, {0x104b608b3, 0x3})
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mylog/common.go:38 +0x200
+github.com/xxjwxc/public/mylog.(*stdLog).Error(0x14000722180, {0x1400004c1a0, 0x1, 0x1})
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mylog/std.go:38 +0xfc
+github.com/xxjwxc/public/mylog.Error(...)
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mylog/mylog.go:50
+github.com/xxjwxc/public/mysqldb.(*MySqlDB).OnGetDBOrm(0x1400091e008, {0x14000928060, 0x5d}, 0x5, 0x14, 0x1)
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mysqldb/mysqldb.go:52 +0x484
+github.com/xxjwxc/public/mysqldb.OnInitDBOrm(...)
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mysqldb/mysqldb.go:30
+shares/internal/core.(*DaoCore).InitDao(0x105b7b640)
+	/Users/triplewings/gupiao/gupiao_all_in_one/shares/shares/internal/core/dao.go:53 +0xa4
+shares/internal/core.init.0()
+	/Users/triplewings/gupiao/gupiao_all_in_one/shares/shares/internal/core/dao.go:22 +0x24
+
+=========================end=========================
+=========================2025-09-18 13:04:56 ========================= 
+Got error when connect database::@tcp(localhost:3306)/caoguo_dev?charset=utf8&parseTime=True&loc=Local&interpolateParams=True: Error 1045 (28000): Access denied for user ''@'localhost' (using password: NO)
+goroutine 1 [running, locked to thread]:
+runtime/debug.Stack()
+	/usr/local/go/src/runtime/debug/stack.go:26 +0x64
+github.com/xxjwxc/public/mylog.(*errDeal).SaveError(0x14000722180, {0x140007a0410, 0xcd}, {0x104b608b3, 0x3})
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mylog/common.go:38 +0x200
+github.com/xxjwxc/public/mylog.(*stdLog).Error(0x14000722180, {0x140008a8800, 0x1, 0x1})
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mylog/std.go:38 +0xfc
+github.com/xxjwxc/public/mylog.Error(...)
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mylog/mylog.go:50
+github.com/xxjwxc/public/mysqldb.(*MySqlDB).OnGetDBOrm(0x1400018e4c8, {0x14000042180, 0x5d}, 0x5, 0x14, 0x1)
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mysqldb/mysqldb.go:52 +0x484
+github.com/xxjwxc/public/mysqldb.OnInitDBOrm(...)
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mysqldb/mysqldb.go:30
+shares/internal/core.(*DaoCore).InitDao(0x105b7b640)
+	/Users/triplewings/gupiao/gupiao_all_in_one/shares/shares/internal/core/dao.go:54 +0x10c
+shares/internal/core.init.0()
+	/Users/triplewings/gupiao/gupiao_all_in_one/shares/shares/internal/core/dao.go:22 +0x24
+
+=========================end=========================
+=========================2025-09-18 13:04:56 ========================= 
+open /Users/triplewings/gupiao/gupiao_all_in_one/shares/shares/conf/cert/apiclient_key.pem: no such file or directory
+goroutine 1 [running, locked to thread]:
+runtime/debug.Stack()
+	/usr/local/go/src/runtime/debug/stack.go:26 +0x64
+github.com/xxjwxc/public/mylog.(*errDeal).SaveError(0x14000722180, {0x140008a0380, 0x75}, {0x104b608b3, 0x3})
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mylog/common.go:38 +0x200
+github.com/xxjwxc/public/mylog.(*stdLog).Error(0x14000722180, {0x140008a88a0, 0x1, 0x1})
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mylog/std.go:38 +0xfc
+github.com/xxjwxc/public/mylog.Error(...)
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mylog/mylog.go:50
+github.com/xxjwxc/public/weixin.New({{0x1400068c680, 0x10}, {0x14000824330, 0x18}, {0x14000824348, 0x13}, {0x1400068c6c6, 0x9}, {0x140008204e0, 0x25}, ...})
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/weixin/init.go:70 +0x3a0
+shares/internal/service/nlp.init.0()
+	/Users/triplewings/gupiao/gupiao_all_in_one/shares/shares/internal/service/nlp/avatar.go:45 +0xf8
+
+=========================end=========================
+=========================2025-09-18 13:08:21 ========================= 
+Got error when connect database::@tcp(localhost:3306)/caoguo_dev?charset=utf8&parseTime=True&loc=Local&interpolateParams=True: Error 1045 (28000): Access denied for user ''@'localhost' (using password: NO)
+goroutine 1 [running, locked to thread]:
+runtime/debug.Stack()
+	/usr/local/go/src/runtime/debug/stack.go:26 +0x64
+github.com/xxjwxc/public/mylog.(*errDeal).SaveError(0x14000754140, {0x140007d8410, 0xcd}, {0x1055148b3, 0x3})
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mylog/common.go:38 +0x200
+github.com/xxjwxc/public/mylog.(*stdLog).Error(0x14000754140, {0x140007ca4a0, 0x1, 0x1})
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mylog/std.go:38 +0xfc
+github.com/xxjwxc/public/mylog.Error(...)
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mylog/mylog.go:50
+github.com/xxjwxc/public/mysqldb.(*MySqlDB).OnGetDBOrm(0x1400090e528, {0x1400027c1e0, 0x5d}, 0x5, 0x14, 0x1)
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mysqldb/mysqldb.go:52 +0x484
+github.com/xxjwxc/public/mysqldb.OnInitDBOrm(...)
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mysqldb/mysqldb.go:30
+shares/internal/core.(*DaoCore).InitDao(0x10652f640)
+	/Users/triplewings/gupiao/gupiao_all_in_one/shares/shares/internal/core/dao.go:53 +0xa4
+shares/internal/core.init.0()
+	/Users/triplewings/gupiao/gupiao_all_in_one/shares/shares/internal/core/dao.go:22 +0x24
+
+=========================end=========================
+=========================2025-09-18 13:08:21 ========================= 
+Got error when connect database::@tcp(localhost:3306)/caoguo_dev?charset=utf8&parseTime=True&loc=Local&interpolateParams=True: Error 1045 (28000): Access denied for user ''@'localhost' (using password: NO)
+goroutine 1 [running, locked to thread]:
+runtime/debug.Stack()
+	/usr/local/go/src/runtime/debug/stack.go:26 +0x64
+github.com/xxjwxc/public/mylog.(*errDeal).SaveError(0x14000754140, {0x1400083e410, 0xcd}, {0x1055148b3, 0x3})
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mylog/common.go:38 +0x200
+github.com/xxjwxc/public/mylog.(*stdLog).Error(0x14000754140, {0x14000826070, 0x1, 0x1})
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mylog/std.go:38 +0xfc
+github.com/xxjwxc/public/mylog.Error(...)
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mylog/mylog.go:50
+github.com/xxjwxc/public/mysqldb.(*MySqlDB).OnGetDBOrm(0x1400090e570, {0x1400027c300, 0x5d}, 0x5, 0x14, 0x1)
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mysqldb/mysqldb.go:52 +0x484
+github.com/xxjwxc/public/mysqldb.OnInitDBOrm(...)
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mysqldb/mysqldb.go:30
+shares/internal/core.(*DaoCore).InitDao(0x10652f640)
+	/Users/triplewings/gupiao/gupiao_all_in_one/shares/shares/internal/core/dao.go:54 +0x10c
+shares/internal/core.init.0()
+	/Users/triplewings/gupiao/gupiao_all_in_one/shares/shares/internal/core/dao.go:22 +0x24
+
+=========================end=========================
+=========================2025-09-18 13:08:21 ========================= 
+open /Users/triplewings/gupiao/gupiao_all_in_one/shares/shares/conf/cert/apiclient_key.pem: no such file or directory
+goroutine 1 [running, locked to thread]:
+runtime/debug.Stack()
+	/usr/local/go/src/runtime/debug/stack.go:26 +0x64
+github.com/xxjwxc/public/mylog.(*errDeal).SaveError(0x14000754140, {0x1400021a900, 0x75}, {0x1055148b3, 0x3})
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mylog/common.go:38 +0x200
+github.com/xxjwxc/public/mylog.(*stdLog).Error(0x14000754140, {0x14000826110, 0x1, 0x1})
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mylog/std.go:38 +0xfc
+github.com/xxjwxc/public/mylog.Error(...)
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mylog/mylog.go:50
+github.com/xxjwxc/public/weixin.New({{0x14000760fe0, 0x10}, {0x14000748708, 0x18}, {0x14000748720, 0x13}, {0x14000761026, 0x9}, {0x1400074a600, 0x25}, ...})
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/weixin/init.go:70 +0x3a0
+shares/internal/service/nlp.init.0()
+	/Users/triplewings/gupiao/gupiao_all_in_one/shares/shares/internal/service/nlp/avatar.go:45 +0xf8
+
+=========================end=========================
+=========================2025-09-18 13:08:55 ========================= 
+Got error when connect database::@tcp(localhost:3306)/caoguo_dev?charset=utf8&parseTime=True&loc=Local&interpolateParams=True: Error 1045 (28000): Access denied for user ''@'localhost' (using password: NO)
+goroutine 1 [running, locked to thread]:
+runtime/debug.Stack()
+	/usr/local/go/src/runtime/debug/stack.go:26 +0x64
+github.com/xxjwxc/public/mylog.(*errDeal).SaveError(0x1400056e7a0, {0x140006d4410, 0xcd}, {0x1017b08b3, 0x3})
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mylog/common.go:38 +0x200
+github.com/xxjwxc/public/mylog.(*stdLog).Error(0x1400056e7a0, {0x140006240b0, 0x1, 0x1})
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mylog/std.go:38 +0xfc
+github.com/xxjwxc/public/mylog.Error(...)
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mylog/mylog.go:50
+github.com/xxjwxc/public/mysqldb.(*MySqlDB).OnGetDBOrm(0x140009a4280, {0x14000280540, 0x5d}, 0x5, 0x14, 0x1)
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mysqldb/mysqldb.go:52 +0x484
+github.com/xxjwxc/public/mysqldb.OnInitDBOrm(...)
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mysqldb/mysqldb.go:30
+shares/internal/core.(*DaoCore).InitDao(0x1027cb640)
+	/Users/triplewings/gupiao/gupiao_all_in_one/shares/shares/internal/core/dao.go:53 +0xa4
+shares/internal/core.init.0()
+	/Users/triplewings/gupiao/gupiao_all_in_one/shares/shares/internal/core/dao.go:22 +0x24
+
+=========================end=========================
+=========================2025-09-18 13:08:55 ========================= 
+Got error when connect database::@tcp(localhost:3306)/caoguo_dev?charset=utf8&parseTime=True&loc=Local&interpolateParams=True: Error 1045 (28000): Access denied for user ''@'localhost' (using password: NO)
+goroutine 1 [running, locked to thread]:
+runtime/debug.Stack()
+	/usr/local/go/src/runtime/debug/stack.go:26 +0x64
+github.com/xxjwxc/public/mylog.(*errDeal).SaveError(0x1400056e7a0, {0x140006d48f0, 0xcd}, {0x1017b08b3, 0x3})
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mylog/common.go:38 +0x200
+github.com/xxjwxc/public/mylog.(*stdLog).Error(0x1400056e7a0, {0x14000624280, 0x1, 0x1})
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mylog/std.go:38 +0xfc
+github.com/xxjwxc/public/mylog.Error(...)
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mylog/mylog.go:50
+github.com/xxjwxc/public/mysqldb.(*MySqlDB).OnGetDBOrm(0x14000628020, {0x140006d80c0, 0x5d}, 0x5, 0x14, 0x1)
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mysqldb/mysqldb.go:52 +0x484
+github.com/xxjwxc/public/mysqldb.OnInitDBOrm(...)
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mysqldb/mysqldb.go:30
+shares/internal/core.(*DaoCore).InitDao(0x1027cb640)
+	/Users/triplewings/gupiao/gupiao_all_in_one/shares/shares/internal/core/dao.go:54 +0x10c
+shares/internal/core.init.0()
+	/Users/triplewings/gupiao/gupiao_all_in_one/shares/shares/internal/core/dao.go:22 +0x24
+
+=========================end=========================
+=========================2025-09-18 13:08:55 ========================= 
+open /Users/triplewings/gupiao/gupiao_all_in_one/shares/shares/conf/cert/apiclient_key.pem: no such file or directory
+goroutine 1 [running, locked to thread]:
+runtime/debug.Stack()
+	/usr/local/go/src/runtime/debug/stack.go:26 +0x64
+github.com/xxjwxc/public/mylog.(*errDeal).SaveError(0x1400056e7a0, {0x140006ca380, 0x75}, {0x1017b08b3, 0x3})
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mylog/common.go:38 +0x200
+github.com/xxjwxc/public/mylog.(*stdLog).Error(0x1400056e7a0, {0x14000624320, 0x1, 0x1})
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mylog/std.go:38 +0xfc
+github.com/xxjwxc/public/mylog.Error(...)
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/mylog/mylog.go:50
+github.com/xxjwxc/public/weixin.New({{0x1400071c680, 0x10}, {0x140007123a8, 0x18}, {0x140007123c0, 0x13}, {0x1400071c6c6, 0x9}, {0x140007304e0, 0x25}, ...})
+	/Users/triplewings/go/pkg/mod/github.com/xxjwxc/public@v0.0.0-20231208111107-4261fd704a92/weixin/init.go:70 +0x3a0
+shares/internal/service/nlp.init.0()
+	/Users/triplewings/gupiao/gupiao_all_in_one/shares/shares/internal/service/nlp/avatar.go:45 +0xf8
+
+=========================end=========================

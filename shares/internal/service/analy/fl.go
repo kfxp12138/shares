@@ -8,7 +8,6 @@ import (
 	"shares/internal/core"
 	"shares/internal/model"
 	"shares/internal/service/event"
-	"shares/internal/service/weixin"
 	proto "shares/rpc/shares"
 	"strings"
 	"time"
@@ -17,7 +16,6 @@ import (
 	"github.com/xxjwxc/public/myclipboard"
 	"github.com/xxjwxc/public/mylog"
 	"github.com/xxjwxc/public/tools"
-	wx "github.com/xxjwxc/public/weixin"
 	"gorm.io/datatypes"
 )
 
@@ -276,48 +274,10 @@ func getMinuteFangLiang() {
 }
 
 func sendflMsg(sharesInfo *proto.SharesInfo, left, right int64) {
-	var wxMsg []wx.TempWebMsg
-	data := make(map[string]map[string]string)
-	// mp := make(map[string]string)
-	// mp["value"] = "你的分析任务已经运行完成"
-	// //mp["color"] = v.color
-	// data["first"] = mp
-
-	mp := make(map[string]string)
-	mp["value"] = "分时放量提醒" //
-	// mp["color"] = v.color
-	data["first"] = mp
-
-	mp = make(map[string]string)
-	mp["value"] = "分时放量提醒"
-	// mp["color"] = v.color
-	data["keyword1"] = mp
-
-	mp = make(map[string]string)
-	mp["value"] = fmt.Sprintf("%v(%v)", sharesInfo.Name, sharesInfo.Code)
-	// mp["color"] = v.color
-	data["keyword2"] = mp
-
-	mp = make(map[string]string)
-	mp["value"] = fmt.Sprintf("%v(%v%%)", sharesInfo.Price, sharesInfo.Percent)
-	data["keyword3"] = mp
-
-	mp = make(map[string]string)
-	mp["value"] = tools.GetTimeStr(time.Now())
-	data["keyword5"] = mp
-
-	mp = make(map[string]string)
-	mp["value"] = fmt.Sprintf("成交量由%v放大到%v", getSamplePrice(float64(left)), getSamplePrice(float64(right)))
-	data["remark"] = mp
-
-	wxMsg = append(wxMsg, wx.TempWebMsg{
-		Touser:     "oxFCP6hcaZTReezFSs80ZY6qNAv8",
-		TemplateID: "reXjLLFWHN61C3wpmTm-brJoLuDwiSpnca66XmRVJVw",
-		Page:       fmt.Sprintf("https://hospital.xxjwxc.cn/webshares/#/pages/add/add?scode=%v&tag=%v", sharesInfo.Code, "min"),
-		Data:       data,
-	})
-
-	weixin.SendMsg(wxMsg)
+	mylog.Infof("[放量提醒] %s(%s) 成交量由%v放大到%v，当前价 %v (%.2f%%)",
+		sharesInfo.Name, sharesInfo.Code,
+		getSamplePrice(float64(left)), getSamplePrice(float64(right)),
+		sharesInfo.Price, sharesInfo.Percent)
 }
 
 func continueTime() bool {

@@ -243,7 +243,61 @@
   - POST `/shares/api/v1/analy.compare_concepts_export`
     - 入参同上，返回 CSV（`code,name,overlap,weighted,concepts_with_weight`），`Content-Disposition: attachment`。
 
-## 9) 快速访问示例
+## 9) 同概念涨停 Excel 导出
+
+- 后端接口：`POST /shares/api/v1/analy.limitup_pool_export`
+  - Content-Type：`multipart/form-data`
+  - 参数：
+    - `file`（必填）：股票池文件，支持 `.xlsx`、`.csv`、`.txt`；同一个单元格可包含多个代码（逗号/空格分隔）。
+    - `date`（选填，`YYYY-MM-DD`）：指定交易日；缺省时自动取 `shares_daily_tbl` 最新交易日。
+  - 行为：
+    - 解析股票池获得概念集合 → 读取目标交易日涨停个股 → 匹配股票池概念 → 计算个股连板、近 3/5 日涨停次数、5/10 日涨幅 → 统计概念层面最大/均值涨幅，最终导出 Excel。
+    - Excel 结构：
+      - `Summary` 工作表：每条概念一行，字段包含匹配股票数、最大连板数、最大 5/3 日涨停次数、概念 5/10 日涨幅等，按“最大连续涨停”→“近 5 日涨停次数”→“近 3 日涨停次数”→“概念 5/10 日涨幅”排序。
+      - 子工作表：`1_概念名`、`2_概念名` ...，列出匹配的涨停个股（代码、名称、当日涨幅、连板统计、5/10 日涨幅）。
+- 错误返回：
+    - 400：未提供文件、股票池为空、目标日无涨停或概念不匹配。
+    - 500：存储或 Excel 构建异常。
+- 前端页面（H5）：`http://localhost:8082/shares/echarts/limitup_export.html`
+  - 说明：内置上传/日期/下载 UI，使用浏览器即可直接导出，无需额外构建。
+- 数据落库：每次导出会写入 `limitup_report_run`（任务批次）与 `limitup_report_item`（概念/个股明细）。首次使用需手动建表：
+  ```bash
+  mysql -h127.0.0.1 -uroot -p123456 caoguo_dev <<'SQL'
+  CREATE TABLE IF NOT EXISTS limitup_report_run (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    run_at DATETIME NOT NULL,
+    trade_day DATE NOT NULL,
+    pool_filename VARCHAR(255) DEFAULT '',
+    concept_count INT NOT NULL DEFAULT 0,
+    stock_count INT NOT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    KEY idx_trade_day (trade_day)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+  CREATE TABLE IF NOT EXISTS limitup_report_item (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    run_id BIGINT NOT NULL,
+    concept_name VARCHAR(128) NOT NULL,
+    hy_code VARCHAR(16) DEFAULT '',
+    stock_code VARCHAR(16) NOT NULL,
+    stock_name VARCHAR(64) DEFAULT '',
+    consecutive INT NOT NULL DEFAULT 0,
+    limitups_3d INT NOT NULL DEFAULT 0,
+    limitups_5d INT NOT NULL DEFAULT 0,
+    pct_change_5d DOUBLE DEFAULT 0,
+    pct_change_10d DOUBLE DEFAULT 0,
+    concept_pct_5d DOUBLE DEFAULT 0,
+    concept_pct_10d DOUBLE DEFAULT 0,
+    created_at DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    KEY idx_run_concept (run_id, concept_name),
+    KEY idx_stock (stock_code),
+    CONSTRAINT fk_limitup_item_run FOREIGN KEY (run_id) REFERENCES limitup_report_run(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  SQL
+  ```
+
+## 10) 快速访问示例
 
 日K图: http://localhost:8082/shares/echarts/echarts.html?tag=daily&code=sh600000
 分时图: http://localhost:8082/shares/echarts/echarts.html?tag=min&code=sh600000
@@ -284,3 +338,6 @@ ST(5%) → 5%×0.7=3.5%
 默认值（页面已内置，可在地址栏或控件修改）：
 mode=bigrise（大涨）、thType=rel（相对阈值）、minRate=0.7、days=22（近一月交易日）
 若切换为 mode=limitup（涨停），将按 10%/20%/5% 规则计算，忽略 minRate/minPct。
+
+
+python shares/shares/scripts/adata_generate_concepts.py

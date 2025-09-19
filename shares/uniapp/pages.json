@@ -37,6 +37,14 @@
             "style" : {}
         },
         {
+            // 同概念涨停导出
+            "path": "pages/tools/limitup-export",
+            "style": {
+                "navigationBarTitleText": "涨停概念导出",
+                "enablePullDownRefresh": false
+            }
+        },
+        {
             "path" : "App",
             "style" : {}
         }

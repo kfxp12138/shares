@@ -1,40 +1,45 @@
 base:
-    is_dev : true
-    serial_number : 1.0.0
-    service_name : shares
-    service_displayname : sharesserver
-    sercice_desc : shares微服务
+    is_dev: false
+    serial_number: 1.0.0
+    service_name: shares
+    service_displayname: sharesserver
+    sercice_desc: shares微服务
+
 tools_type: 0 # 0:正式环境,1:日分析,2:抓取消息,3:放量,4:放量监听
+
 db_info:
-    port : 3306 # 端口号
-    username : root # 用户名
-    host :  localhost # 地址
-    password : 123456 # 密码
-    # host : localhost
-    # password : qwer
-    database : caoguo_dev # 数据库名
+    host: localhost
+    port: 3306
+    username: root
+    password: 123456
+    database: caoguo_dev
+
 redis_info:
     addrs: ["127.0.0.1:6379"]
-    password: 123456
+    password: ""
     group_name: oauth2
     db: 0
+
 etcd_info:
     addrs: ["127.0.0.1:2379"]
     timeout: 3
-wx_info:
-    app_id : wxxxxxxxxxxxx31a
-    app_secret : xxxxxxxxxxxxxxxxxxxxxxxx
-    api_key : xxxxxxxxxxxxxxxxxxx
-    mch_id : xxxxxxxxx
-    notify_url : http://www.localhost.com
-    shear_url : 
+
+security:
+    allowed_origins: []
+    allow_credentials: false
+    cookie_secure: null
+    cookie_same_site: lax
+    cookie_domain: ""
+    enable_metrics: false
+
 port: 8082
 file_host: https://www.localhost.com/shares/api/v1
-max_capacity : 5
+max_capacity: 5
 def_group: 默认指标
-ext : [sh,sz,hk]
+ext: [sh, sz, hk]
+
 adata:
-concepts_url: "" # 可选：URL 定时刷新
-python: python3 # 或绝对路径 /usr/bin/python3
-script: ./scripts/adata_concepts.py
-args: [] # 可选参数数组  # 可选：脚本参数列表
+    concepts_url: ""
+    python: python3
+    script: ./scripts/adata_concepts.py
+    args: []

@@ -5,13 +5,7 @@ import (
 )
 
 func init() {
-	ginrpc.SetVersion(1757413143)
-	ginrpc.AddGenOne("Weixin.GetQrcode", "weixin.get_qrcode", []string{"post"}, []ginrpc.GenThirdParty{}, `获取微信二维码`)
-	ginrpc.AddGenOne("Weixin.GetUserInfo", "weixin.get_user_info", []string{"post"}, []ginrpc.GenThirdParty{}, ``)
-	ginrpc.AddGenOne("Weixin.Oauth", "weixin.oauth", []string{"post"}, []ginrpc.GenThirdParty{}, `微信授权获取登录信息`)
-	ginrpc.AddGenOne("Weixin.ReLogin", "weixin.re_login", []string{"post"}, []ginrpc.GenThirdParty{}, `是否要重新登录`)
-	ginrpc.AddGenOne("Weixin.UpdateUserInfo", "weixin.update_user_info", []string{"post"}, []ginrpc.GenThirdParty{}, `更新用户信息`)
-	ginrpc.AddGenOne("Weixin.UpsetUserInfo", "weixin.upset_user_info", []string{"post"}, []ginrpc.GenThirdParty{}, `更新用户信息`)
+	ginrpc.SetVersion(1758268070)
 	ginrpc.AddGenOne("Shares.AddGroup", "shares.add_group", []string{"post"}, []ginrpc.GenThirdParty{}, `添加一个组织`)
 	ginrpc.AddGenOne("Shares.AddMyCode", "shares.add_my_code", []string{"post"}, []ginrpc.GenThirdParty{}, `给自己添加一个监听`)
 	ginrpc.AddGenOne("Shares.Dayliy", "shares.dayliy", []string{"post"}, []ginrpc.GenThirdParty{}, ``)
